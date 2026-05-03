@@ -1,8 +1,10 @@
 # MXStore
 
-应用商店 CMS 与签名下载管理系统。
+> 项目名称 MXstore-CMS · 产品名称 MXStore
 
-基于 Next.js App Router + Supabase Cloud + Tailwind CSS 构建，支持 OpenList 签名下载、钱包登录、链上支付，部署于 Vercel。
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Maishan-Inc/MXstore-CMS)
+
+应用商店 CMS 与签名下载管理系统。基于 Next.js App Router + Supabase Cloud + Tailwind CSS 构建，支持 OpenList 签名下载、钱包登录、链上支付。
 
 ## 功能特性
 
@@ -48,18 +50,29 @@
 | 测试 | vitest |
 | 部署 | Vercel + Supabase Cloud |
 
-## 快速开始
+## 一键部署
+
+点击上方按钮或访问 [Vercel](https://vercel.com/new/clone?repository-url=https://github.com/Maishan-Inc/MXstore-CMS) 直接部署。
+
+部署时需要填写以下环境变量：
+
+| 变量 | 说明 |
+|------|------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase 项目 URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase Anon Key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase Service Role Key |
+| `APP_SECRET` | 加密密钥（任意随机字符串） |
+| `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | WalletConnect 项目 ID（可选） |
+| `EVM_RPC_URL_8453` | Base 链 RPC（可选，支付功能需要） |
+
+部署完成后访问首页，自动进入安装向导创建管理员账号。
+
+## 本地开发
 
 ```bash
-# 安装依赖
 pnpm install
-
-# 复制环境变量
 cp .env.example .env.local
-
-# 填写 .env.local 中的 Supabase 和其他配置
-
-# 启动开发服务器
+# 编辑 .env.local 填写 Supabase 配置
 pnpm dev
 ```
 
@@ -108,14 +121,6 @@ lib/                  # 工具库
 supabase/migrations/  # 数据库迁移
 tests/                # 单元测试
 ```
-
-## 部署
-
-详见 [tasks/11-deployment-vercel-supabase.md](tasks/11-deployment-vercel-supabase.md)
-
-1. 创建 Supabase Cloud 项目
-2. 在 Vercel 导入仓库并配置环境变量
-3. 部署后访问首页完成安装向导
 
 ## Logo
 
