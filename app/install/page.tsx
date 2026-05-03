@@ -134,7 +134,8 @@ export default function InstallPage() {
         <section className="install-card install-hero install-agreement">
           <div className="agreement-logo">
             <span className="brand-logo">
-              <span>MX</span><span className="brand-logo-highlight">Store</span>
+              <img src="/logo.png" alt="" width={28} height={28} className="brand-logo-img" />
+              <span>MXStore</span>
             </span>
           </div>
 
@@ -408,12 +409,19 @@ export default function InstallPage() {
           width: min(720px, 100%);
         }
         .agreement-logo .brand-logo { font-size: 28px; }
+        .agreement-logo .brand-logo-img { width: 36px; height: 36px; }
         .agreement-article {
           max-width: 680px;
+          max-height: 320px;
+          overflow-y: auto;
           display: grid;
           gap: 10px;
+          padding-right: 8px;
         }
-        .agreement-article h1 { margin: 6px 0 4px; font-size: 32px; color: #0f172a; }
+        .agreement-article::-webkit-scrollbar { width: 4px; }
+        .agreement-article::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+        .agreement-article::-webkit-scrollbar-track { background: transparent; }
+        .agreement-article h1 { margin: 6px 0 4px; font-size: 32px; color: #000000; font-weight: 700; }
         .agreement-article p { margin: 0; line-height: 1.8; text-align: left; color: #64748b; font-size: 14px; }
         .agreement-accept { min-width: 210px; }
 
@@ -421,23 +429,21 @@ export default function InstallPage() {
         .brand-logo {
           display: inline-flex;
           align-items: center;
+          gap: 8px;
           color: #0f172a;
           font-size: 22px;
           font-weight: 700;
           letter-spacing: .04em;
           margin-bottom: 16px;
         }
-        .brand-logo-highlight {
-          background: #0f172a;
-          color: #ffffff;
-          padding: 2px 5px;
-          margin: 0 2px;
-          border-radius: 3px;
+        .brand-logo-img {
+          border-radius: 6px;
+          object-fit: contain;
         }
 
         /* Kicker */
         .kicker {
-          color: #047857;
+          color: #000000;
           text-transform: uppercase;
           letter-spacing: .14em;
           font-size: 12px;
