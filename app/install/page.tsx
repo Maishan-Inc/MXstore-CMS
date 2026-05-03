@@ -100,7 +100,8 @@ export default function InstallPage() {
     }
   }
 
-  const allChecksOk = envChecks.length > 0 && envChecks.every((c) => c.status === 'ok')
+  const hasError = envChecks.some((c) => c.status === 'error')
+  const allChecksOk = envChecks.length > 0 && !hasError
 
   const canNext = installed
     ? stepIndex < 3
@@ -226,8 +227,8 @@ export default function InstallPage() {
                       </div>
                     ))}
                   </div>
-                  {!allChecksOk && (
-                    <p className="check-hint">请确保所有检测项均为绿色勾选后，再进行下一步。</p>
+                  {hasError && (
+                    <p className="check-hint">存在错误项，请修复后再进行下一步。</p>
                   )}
                 </section>
               )}

@@ -17,11 +17,11 @@ export async function GET() {
   }
 
   // 2. 环境变量
-  const envOk = !!process.env.NEXT_PUBLIC_APP_URL
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL
   checks.push({
     name: '环境变量',
-    status: envOk ? 'ok' : 'warning',
-    message: envOk ? 'NEXT_PUBLIC_APP_URL 已配置' : 'NEXT_PUBLIC_APP_URL 未配置，将使用默认值'
+    status: appUrl ? 'ok' : 'warning',
+    message: appUrl ? `APP_URL: ${appUrl}` : 'NEXT_PUBLIC_APP_URL 未配置，将使用默认值'
   })
 
   // 3. Node 版本
@@ -33,7 +33,7 @@ export async function GET() {
     message: `${nodeVersion} ${nodeMajor >= 18 ? '' : '(需要 >= 18)'}`
   })
 
-  // 4. Next 版本 - read from package.json
+  // 4. Next 版本
   let nextVersion = 'unknown'
   let nextOk = false
   try {
@@ -52,17 +52,16 @@ export async function GET() {
 
   // If Supabase not configured, return early
   if (!supabaseOk) {
-    checks.push({ name: '数据库表完整性', status: 'pending', message: '等待 Supabase 配置' })
-    checks.push({ name: '安装状态', status: 'pending', message: '尚未检测' })
-    checks.push({ name: '管理员账户', status: 'pending', message: '尚未创建' })
+    checks.push({ name: '数据库表完整性', status: 'warning', message: '等待 Supabase 配置后自动检测' })
+    checks.push({ name: '安装状态', status: 'warning', message: '尚未检测' })
+    checks.push({ name: '管理员账户', status: 'warning', message: '尚未创建' })
     return NextResponse.json({ installed: false, has_admin: false, checks })
   }
 
-  // Dynamic import to avoid crash when env vars are missing
   const { createAdminClient } = await import('@/lib/supabase/admin')
   const supabase = createAdminClient()
 
-  // 5. 数据库表完整性 - check key tables exist
+  // 5. 数据库表完整性 - non-blocking, tables may not exist yet before install
   let dbOk = false
   try {
     const { error } = await supabase.from('system_settings').select('key').limit(1)
@@ -72,8 +71,8 @@ export async function GET() {
   }
   checks.push({
     name: '数据库表完整性',
-    status: dbOk ? 'ok' : 'error',
-    message: dbOk ? '核心表可访问' : '无法访问 system_settings 表，请先执行数据库迁移'
+    status: dbOk ? 'ok' : 'warning',
+    message: dbOk ? '核心表可访问' : '表尚未创建，安装过程中将自动初始化'
   })
 
   // 6. 安装状态
@@ -90,7 +89,7 @@ export async function GET() {
   }
   checks.push({
     name: '安装状态',
-    status: installed ? 'ok' : 'pending',
+    status: installed ? 'ok' : 'warning',
     message: installed ? '系统已安装' : '尚未安装'
   })
 
@@ -107,7 +106,7 @@ export async function GET() {
   }
   checks.push({
     name: '管理员账户',
-    status: hasAdmin ? 'ok' : 'pending',
+    status: hasAdmin ? 'ok' : 'warning',
     message: hasAdmin ? '已存在管理员' : '尚未创建'
   })
 
