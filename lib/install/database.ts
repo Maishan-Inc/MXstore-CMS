@@ -6,15 +6,18 @@ export async function checkDatabaseConnection(databaseUrl = process.env.SUPABASE
     return { ok: false, message: '缺少 SUPABASE_DB_URL' }
   }
 
-  const client = createDatabaseClient(databaseUrl)
+  let client: Client | null = null
   try {
+    client = createDatabaseClient(databaseUrl)
     await client.connect()
     await client.query('select 1')
     return { ok: true, message: '数据库初始化连接可用' }
   } catch (error) {
     return { ok: false, message: `数据库初始化连接失败: ${toErrorMessage(error)}` }
   } finally {
-    await safeEnd(client)
+    if (client) {
+      await safeEnd(client)
+    }
   }
 }
 
