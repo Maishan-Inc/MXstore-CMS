@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { createAdminClient } from '@/lib/supabase/admin'
 
 const Schema = z.object({
   admin_username: z.string().min(2).max(50),
@@ -10,6 +9,11 @@ const Schema = z.object({
 })
 
 export async function POST(request: NextRequest) {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return new NextResponse('Supabase 环境变量未配置，请先在 Vercel 中设置 NEXT_PUBLIC_SUPABASE_URL 和 SUPABASE_SERVICE_ROLE_KEY', { status: 500 })
+  }
+
+  const { createAdminClient } = await import('@/lib/supabase/admin')
   const supabase = createAdminClient()
 
   // Check if already installed

@@ -16,37 +16,42 @@ function isPublicPath(pathname: string) {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Always allow public paths, static assets, and API install routes
+  // Always allow public paths
   if (isPublicPath(pathname)) {
     return NextResponse.next({ request })
   }
 
-  // Skip if Supabase env vars are not configured
+  // Redirect to install if Supabase env vars are missing
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     return NextResponse.redirect(new URL('/install', request.url))
   }
 
-  let response = NextResponse.next({ request })
+  try {
+    let response = NextResponse.next({ request })
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          response = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options))
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+            response = NextResponse.next({ request })
+            cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options))
+          }
         }
       }
-    }
-  )
+    )
 
-  await supabase.auth.getUser()
-  return response
+    await supabase.auth.getUser()
+    return response
+  } catch {
+    // Supabase client failed (bad URL, invalid key, network error) - redirect to install
+    return NextResponse.redirect(new URL('/install', request.url))
+  }
 }
 
 export const config = {
