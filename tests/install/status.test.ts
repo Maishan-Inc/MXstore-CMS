@@ -82,8 +82,19 @@ describe('install status', () => {
       name: 'Supabase 连接',
       status: 'ok'
     }))
+    expect(data.checks).not.toContainEqual(expect.objectContaining({
+      name: '环境变量'
+    }))
     expect(data.checks).toContainEqual(expect.objectContaining({
       name: '数据库表完整性',
+      status: 'ok'
+    }))
+    expect(data.checks).toContainEqual(expect.objectContaining({
+      name: '安装状态',
+      status: 'ok'
+    }))
+    expect(data.checks).toContainEqual(expect.objectContaining({
+      name: '管理员账户',
       status: 'ok'
     }))
   })
@@ -94,6 +105,14 @@ describe('install status', () => {
     expect(data.checks).toContainEqual(expect.objectContaining({
       name: 'Supabase 连接',
       status: 'error'
+    }))
+    expect(data.checks).toContainEqual(expect.objectContaining({
+      name: '安装状态',
+      status: 'ok'
+    }))
+    expect(data.checks).toContainEqual(expect.objectContaining({
+      name: '管理员账户',
+      status: 'ok'
     }))
   })
 })

@@ -26,15 +26,7 @@ export async function GET() {
     })
   }
 
-  // 2. 环境变量
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL
-  checks.push({
-    name: '环境变量',
-    status: appUrl ? 'ok' : 'warning',
-    message: appUrl ? `APP_URL: ${appUrl}` : 'NEXT_PUBLIC_APP_URL 未配置，将使用默认值'
-  })
-
-  // 3. Node 版本
+  // 2. Node 版本
   const nodeVersion = process.version
   const nodeMajor = parseInt(nodeVersion.replace('v', '').split('.')[0], 10)
   checks.push({
@@ -43,7 +35,7 @@ export async function GET() {
     message: `${nodeVersion} ${nodeMajor >= 18 ? '' : '(需要 >= 18)'}`
   })
 
-  // 4. Next 版本
+  // 3. Next 版本
   let nextVersion = 'unknown'
   let nextOk = false
   try {
@@ -62,8 +54,8 @@ export async function GET() {
 
   if (!supabaseOk || !supabase) {
     checks.push({ name: '数据库表完整性', status: 'warning', message: '等待 Supabase 连接成功后检测' })
-    checks.push({ name: '安装状态', status: 'warning', message: '尚未检测' })
-    checks.push({ name: '管理员账户', status: 'warning', message: '尚未创建' })
+    checks.push({ name: '安装状态', status: 'ok', message: '尚未检测' })
+    checks.push({ name: '管理员账户', status: 'ok', message: '尚未创建' })
     return NextResponse.json({ installed: false, has_admin: false, checks })
   }
 
@@ -94,11 +86,11 @@ export async function GET() {
   }
   checks.push({
     name: '安装状态',
-    status: installed ? 'ok' : 'warning',
+    status: 'ok',
     message: installed ? '系统已安装' : '尚未安装'
   })
 
-  // 7. 管理员账户
+  // 6. 管理员账户
   let hasAdmin = false
   try {
     const { count } = await supabase
@@ -111,7 +103,7 @@ export async function GET() {
   }
   checks.push({
     name: '管理员账户',
-    status: hasAdmin ? 'ok' : 'warning',
+    status: 'ok',
     message: hasAdmin ? '已存在管理员' : '尚未创建'
   })
 
