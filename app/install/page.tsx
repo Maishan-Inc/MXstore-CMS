@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback, type FormEvent } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 
 type InstallStatus = {
   installed: boolean
@@ -77,8 +77,7 @@ export default function InstallPage() {
     setAgreementRead(t.scrollTop + t.clientHeight >= t.scrollHeight - 4)
   }
 
-  async function runInstall(e: FormEvent) {
-    e.preventDefault()
+  async function runInstall() {
     setInstalling(true)
     setInstallResult(null)
     try {
@@ -251,7 +250,7 @@ export default function InstallPage() {
 
               {stepIndex === 2 && (
                 <section className="install-section">
-                  <form id="install-form" onSubmit={runInstall}>
+                  <form id="install-form" onSubmit={(e) => e.preventDefault()}>
                     <div className="grid single">
                       <label>站点名称
                         <input value={form.site_name} onChange={(e) => setForm({ ...form, site_name: e.target.value })} disabled={installed} />
@@ -317,7 +316,7 @@ export default function InstallPage() {
                 {stepIndex < 3 ? (
                   <button type="button" className="btn-primary" disabled={!canNext} onClick={nextStep}>下一步</button>
                 ) : !installed ? (
-                  <button type="submit" form="install-form" className="btn-primary" disabled={installing || installed}>
+                  <button type="button" className="btn-primary" disabled={installing || installed} onClick={() => { void runInstall() }}>
                     {installing ? '安装中...' : '开始安装'}
                   </button>
                 ) : null}
