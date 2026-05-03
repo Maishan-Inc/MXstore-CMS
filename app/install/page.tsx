@@ -9,7 +9,7 @@ type InstallStatus = {
 }
 
 const steps = [
-  { title: '环境检测', caption: '确认 Supabase 连接与数据库状态。' },
+  { title: '环境检测', caption: '确认运行环境与数据库连接。' },
   { title: '数据库连接', caption: '使用 Supabase Cloud 托管数据库。' },
   { title: '管理员账号', caption: '创建首次登录后台的管理员。' },
   { title: '确认安装', caption: '写入基础数据并锁定安装状态。' }
@@ -30,9 +30,10 @@ export default function InstallPage() {
 
   const [form, setForm] = useState({
     site_name: 'MXStore',
+    site_domain: '',
     admin_username: 'admin',
     admin_email: 'admin@example.com',
-    admin_password: ''
+    admin_password: 'admin1234'
   })
 
   const agreementRef = useRef<HTMLDivElement>(null)
@@ -54,7 +55,6 @@ export default function InstallPage() {
       setInstalled(data.installed)
       setEnvChecks(data.checks)
       if (data.installed) {
-        // Already installed - redirect to homepage, install page is locked
         window.location.replace('/')
         return
       }
@@ -67,6 +67,8 @@ export default function InstallPage() {
   }, [showToast])
 
   useEffect(() => {
+    // Auto-fill domain with current origin
+    setForm((f) => ({ ...f, site_domain: window.location.origin }))
     checkStatus()
   }, [checkStatus])
 
@@ -107,7 +109,7 @@ export default function InstallPage() {
     : stepIndex === 1
     ? true
     : stepIndex === 2
-    ? !!form.site_name && !!form.admin_username && !!form.admin_email && form.admin_password.length >= 8
+    ? !!form.site_name && !!form.site_domain && !!form.admin_username && !!form.admin_email && form.admin_password.length >= 8
     : stepIndex < 3
 
   function nextStep() {
@@ -136,7 +138,7 @@ export default function InstallPage() {
         <section className="install-card install-hero install-agreement">
           <div className="agreement-logo">
             <span className="brand-logo">
-              <img src="/logo.png" alt="" width={28} height={28} className="brand-logo-img" />
+              <img src="/logo.png" alt="" width={48} height={48} className="brand-logo-img" />
               <span>MXStore</span>
             </span>
           </div>
@@ -198,7 +200,7 @@ export default function InstallPage() {
             {/* Centered brand logo */}
             <div className="install-heading">
               <span className="brand-logo brand-logo-centered">
-                <img src="/logo.png" alt="" width={22} height={22} className="brand-logo-img" />
+                <img src="/logo.png" alt="" width={36} height={36} className="brand-logo-img" />
                 <span>MXStore</span>
               </span>
             </div>
@@ -215,21 +217,18 @@ export default function InstallPage() {
                       <div key={item.name} className="check-row">
                         {item.status === 'ok' ? (
                           <svg className="check-icon success" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                        ) : item.status === 'warning' ? (
+                          <svg className="check-icon warning" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.29 3.86l-8.1 14A2 2 0 004 21h16a2 2 0 001.81-3.14l-8.1-14a2 2 0 00-3.42 0z" /></svg>
                         ) : (
                           <svg className="check-icon info" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path strokeLinecap="round" d="M12 8v4m0 4h.01" /></svg>
                         )}
                         <div><strong>{item.name}</strong><small>{item.message}</small></div>
                       </div>
                     ))}
-                    <div className="check-row">
-                      <svg className="check-icon success" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                      <div><strong>数据库</strong><small>使用 Supabase Cloud 托管，通过环境变量配置连接。</small></div>
-                    </div>
-                    <div className="check-row">
-                      <svg className="check-icon info" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path strokeLinecap="round" d="M12 8v4m0 4h.01" /></svg>
-                      <div><strong>安装状态</strong><small>以数据库中 system_settings.installed=true 为准。</small></div>
-                    </div>
                   </div>
+                  {!allChecksOk && (
+                    <p className="check-hint">请确保所有检测项均为绿色勾选后，再进行下一步。</p>
+                  )}
                 </section>
               )}
 
@@ -256,11 +255,14 @@ export default function InstallPage() {
                       <label>站点名称
                         <input value={form.site_name} onChange={(e) => setForm({ ...form, site_name: e.target.value })} disabled={installed} />
                       </label>
+                      <label>域名
+                        <input value={form.site_domain} onChange={(e) => setForm({ ...form, site_domain: e.target.value })} disabled={installed} placeholder="https://your-domain.com" />
+                      </label>
                       <label>管理员
                         <input value={form.admin_username} onChange={(e) => setForm({ ...form, admin_username: e.target.value })} disabled={installed} />
                       </label>
                       <label>邮箱
-                        <input type="email" value={form.admin_email} onChange={(e) => setForm({ ...form, admin_email: e.target.value })} disabled={installed} placeholder="admin@example.com" />
+                        <input type="email" value={form.admin_email} onChange={(e) => setForm({ ...form, admin_email: e.target.value })} disabled={installed} />
                       </label>
                       <label>密码
                         <input type="password" value={form.admin_password} onChange={(e) => setForm({ ...form, admin_password: e.target.value })} disabled={installed} placeholder="至少 8 位" />
@@ -279,7 +281,7 @@ export default function InstallPage() {
                         { text: `mxstore env:check --supabase=${process.env.NEXT_PUBLIC_SUPABASE_URL ? 'ok' : 'pending'}`, done: true },
                         { text: `mxstore migrate --apply`, done: true },
                         { text: `mxstore admin:create --user="${form.admin_username}" --email="${form.admin_email}"`, done: !!installResult },
-                        { text: `mxstore settings:init --site="${form.site_name}"`, done: !!installResult },
+                        { text: `mxstore settings:init --site="${form.site_name}" --domain="${form.site_domain}"`, done: !!installResult },
                         { text: installed ? 'mxstore install:lock --status=installed' : 'mxstore install:lock --status=pending', done: installed }
                       ].map((line, i) => (
                         <div key={i} className={`command-line ${line.done ? 'done' : installing && !line.done ? 'running' : ''}`}>
@@ -377,8 +379,8 @@ export default function InstallPage() {
           padding: 34px 34px 38px;
           width: min(720px, 100%);
         }
-        .agreement-logo .brand-logo { font-size: 28px; }
-        .agreement-logo .brand-logo-img { width: 36px; height: 36px; }
+        .agreement-logo .brand-logo { font-size: 32px; gap: 12px; }
+        .agreement-logo .brand-logo-img { width: 48px; height: 48px; }
         .agreement-article {
           max-width: 680px;
           max-height: 320px;
@@ -398,13 +400,13 @@ export default function InstallPage() {
         .brand-logo {
           display: inline-flex;
           align-items: center;
-          gap: 8px;
+          gap: 10px;
           color: #0f172a;
-          font-size: 22px;
+          font-size: 24px;
           font-weight: 700;
           letter-spacing: .04em;
         }
-        .brand-logo-img { border-radius: 6px; object-fit: contain; }
+        .brand-logo-img { border-radius: 8px; object-fit: contain; }
         .brand-logo-centered { justify-content: center; width: 100%; }
 
         /* Kicker */
@@ -451,12 +453,14 @@ export default function InstallPage() {
           align-items: center;
           justify-content: center;
           position: relative;
-          min-height: 42px;
+          min-height: 50px;
         }
+        .install-heading .brand-logo { font-size: 26px; gap: 10px; }
+        .install-heading .brand-logo-img { width: 36px; height: 36px; }
 
         /* Step page */
         .install-step-page { margin-top: 24px; min-height: 382px; }
-        .install-step-title { display: grid; gap: 6px; margin-bottom: 14px; }
+        .install-step-title { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
         .install-step-title h2 { margin: 0; color: #0f172a; font-size: 20px; font-weight: 600; }
         .install-section { padding-top: 6px; }
         .install-section-with-action {
@@ -486,7 +490,9 @@ export default function InstallPage() {
         .check-row small { display: block; color: #94a3b8; font-size: 12px; margin-top: 2px; }
         .check-icon { width: 20px; height: 20px; flex-shrink: 0; margin-top: 1px; }
         .check-icon.success { color: #047857; }
+        .check-icon.warning { color: #d97706; }
         .check-icon.info { color: #94a3b8; }
+        .check-hint { color: #b45309; font-size: 13px; margin-top: 8px; }
 
         /* Grid */
         .grid.single { display: grid; grid-template-columns: 1fr; gap: 18px; }

@@ -5,7 +5,8 @@ const Schema = z.object({
   admin_username: z.string().min(2).max(50),
   admin_email: z.string().email(),
   admin_password: z.string().min(8).max(128),
-  site_name: z.string().min(1).max(100).optional()
+  site_name: z.string().min(1).max(100).optional(),
+  site_domain: z.string().url().optional()
 })
 
 export async function POST(request: NextRequest) {
@@ -74,11 +75,13 @@ export async function POST(request: NextRequest) {
 
   // Mark as installed
   const siteName = body.site_name || 'MXStore'
+  const siteDomain = body.site_domain || ''
   const now = new Date().toISOString()
 
   const settingsEntries = [
     { key: 'installed', value: 'true', group_name: 'system' },
     { key: 'site_name', value: siteName, group_name: 'site' },
+    { key: 'site_domain', value: siteDomain, group_name: 'site' },
     { key: 'installed_at', value: now, group_name: 'system' }
   ]
 
