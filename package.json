@@ -1,0 +1,43 @@
+{
+  "name": "mxstorecms",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@rainbow-me/rainbowkit": "latest",
+    "@supabase/ssr": "latest",
+    "@supabase/supabase-js": "latest",
+    "@tailwindcss/postcss": "^4.2.4",
+    "@tanstack/react-query": "latest",
+    "clsx": "latest",
+    "lucide-react": "latest",
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "server-only": "latest",
+    "siwe": "latest",
+    "viem": "latest",
+    "wagmi": "latest",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "autoprefixer": "latest",
+    "eslint": "latest",
+    "eslint-config-next": "latest",
+    "postcss": "latest",
+    "tailwindcss": "latest",
+    "typescript": "latest",
+    "vitest": "^4.1.5"
+  },
+  "description": "MXStore app store CMS built with Next.js, Supabase, React, OpenList signed downloads, wallet login, and blockchain payments."
+}

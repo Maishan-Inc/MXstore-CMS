@@ -1,0 +1,29 @@
+# Dependencies
+node_modules
+
+# Next.js
+.next
+out
+
+# Environment
+.env
+.env*.local
+
+# Vercel
+.vercel
+
+# Build
+tsconfig.tsbuildinfo
+
+# Testing
+coverage
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Claude Code
+.claude/

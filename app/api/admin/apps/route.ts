@@ -1,0 +1,156 @@
+import { NextResponse } from 'next/server'
+import { z } from 'zod'
+import { requireAdmin } from '@/lib/auth'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { findTokenDomainByUrl } from '@/lib/openlist'
+
+const LinkSchema = z.object({
+  id: z.string().uuid().nullable().optional(),
+  name: z.string().min(1),
+  input_url: z.string().url(),
+  file_size_bytes: z.number().int().positive().nullable().optional(),
+  charge_traffic: z.boolean().default(true),
+  sort_order: z.number().int().default(0)
+})
+
+const AppSchema = z.object({
+  name: z.string().min(1),
+  slug: z.string().min(1).regex(/^[a-z0-9-]+$/),
+  description: z.string().optional().nullable(),
+  version: z.string().optional().nullable(),
+  platform: z.string().optional().nullable(),
+  logo_url: z.string().url().optional().or(z.literal('')).nullable(),
+  is_paid: z.boolean().default(false),
+  price_cents: z.number().int().min(0).default(0),
+  currency: z.string().min(3).max(8).default('USD'),
+  published: z.boolean().default(false),
+  links: z.array(LinkSchema).min(1)
+})
+
+async function buildLinks(appId: string, links: z.infer<typeof LinkSchema>[]) {
+  return Promise.all(
+    links.map(async (link) => {
+      const matchedDomain = await findTokenDomainByUrl(link.input_url)
+      return {
+        id: link.id ?? undefined,
+        app_id: appId,
+        name: link.name,
+        input_url: link.input_url,
+        link_kind: matchedDomain ? 'openlist' : 'external',
+        token_domain_id: matchedDomain?.id ?? null,
+        file_size_bytes: link.file_size_bytes ?? null,
+        charge_traffic: link.charge_traffic,
+        sort_order: link.sort_order
+      }
+    })
+  )
+}
+
+async function writeLinks(appId: string, links: z.infer<typeof LinkSchema>[]) {
+  const supabase = createAdminClient()
+  const builtLinks = await buildLinks(appId, links)
+  const idsToKeep = builtLinks.flatMap((link) => (link.id ? [link.id] : []))
+
+  if (idsToKeep.length) {
+    const { data: existingLinks, error: existingError } = await supabase
+      .from('app_links')
+      .select('id')
+      .eq('app_id', appId)
+    if (existingError) throw existingError
+
+    const staleIds = (existingLinks ?? []).map((link) => link.id).filter((id) => !idsToKeep.includes(id))
+    if (staleIds.length) {
+      const { error: deleteError } = await supabase.from('app_links').delete().in('id', staleIds)
+      if (deleteError) throw deleteError
+    }
+  } else {
+    const { error: deleteError } = await supabase.from('app_links').delete().eq('app_id', appId)
+    if (deleteError) throw deleteError
+  }
+
+  const { error: upsertError } = await supabase.from('app_links').upsert(builtLinks)
+  if (upsertError) throw upsertError
+}
+
+export async function GET() {
+  await requireAdmin()
+  const supabase = createAdminClient()
+  const { data, error } = await supabase
+    .from('apps')
+    .select('id,name,slug,version,platform,published,is_paid,price_cents,currency,created_at,app_links(id)')
+    .order('created_at', { ascending: false })
+
+  if (error) return new NextResponse(error.message, { status: 500 })
+  return NextResponse.json(data)
+}
+
+export async function POST(request: Request) {
+  const user = await requireAdmin()
+  const body = AppSchema.parse(await request.json())
+  const supabase = createAdminClient()
+
+  const { data: app, error: appError } = await supabase
+    .from('apps')
+    .insert({
+      name: body.name,
+      slug: body.slug,
+      description: body.description,
+      version: body.version,
+      platform: body.platform,
+      logo_url: body.logo_url || null,
+      is_paid: body.is_paid,
+      price_cents: body.price_cents,
+      currency: body.currency,
+      published: body.published,
+      created_by: user.id
+    })
+    .select('id,slug')
+    .single()
+
+  if (appError) return new NextResponse(appError.message, { status: 400 })
+
+  try {
+    await writeLinks(app.id, body.links)
+  } catch (error) {
+    return new NextResponse(error instanceof Error ? error.message : '保存下载链接失败', { status: 400 })
+  }
+
+  return NextResponse.json({ id: app.id, slug: app.slug })
+}
+
+export async function PUT(request: Request) {
+  await requireAdmin()
+  const appId = new URL(request.url).searchParams.get('id')
+  if (!appId) return new NextResponse('缺少应用 id', { status: 400 })
+
+  const body = AppSchema.parse(await request.json())
+  const supabase = createAdminClient()
+  const { data: app, error: appError } = await supabase
+    .from('apps')
+    .update({
+      name: body.name,
+      slug: body.slug,
+      description: body.description,
+      version: body.version,
+      platform: body.platform,
+      logo_url: body.logo_url || null,
+      is_paid: body.is_paid,
+      price_cents: body.price_cents,
+      currency: body.currency,
+      published: body.published,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', appId)
+    .select('id,slug')
+    .single()
+
+  if (appError) return new NextResponse(appError.message, { status: 400 })
+
+  try {
+    await writeLinks(app.id, body.links)
+  } catch (error) {
+    return new NextResponse(error instanceof Error ? error.message : '保存下载链接失败', { status: 400 })
+  }
+
+  return NextResponse.json({ id: app.id, slug: app.slug })
+}
