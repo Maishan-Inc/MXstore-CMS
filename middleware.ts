@@ -18,7 +18,9 @@ export async function middleware(request: NextRequest) {
 
   // Always allow public paths
   if (isPublicPath(pathname)) {
-    return NextResponse.next({ request })
+    const response = NextResponse.next({ request })
+    response.headers.set('x-pathname', pathname)
+    return response
   }
 
   // Redirect to install if Supabase env vars are missing
@@ -28,6 +30,7 @@ export async function middleware(request: NextRequest) {
 
   try {
     let response = NextResponse.next({ request })
+    response.headers.set('x-pathname', pathname)
 
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,

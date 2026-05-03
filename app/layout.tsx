@@ -2,6 +2,7 @@ import './globals.css'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Image from 'next/image'
+import { headers } from 'next/headers'
 import { WalletProvider } from '@/components/wallet-provider'
 import { getCurrentStoreUser } from '@/lib/auth'
 
@@ -11,6 +12,19 @@ export const metadata: Metadata = {
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const headerList = await headers()
+  const pathname = headerList.get('x-pathname') ?? ''
+  const isInstallPage = pathname === '/install' || pathname.startsWith('/install/')
+
+  // Install page gets its own full-screen layout without nav
+  if (isInstallPage) {
+    return (
+      <html lang="zh-CN">
+        <body>{children}</body>
+      </html>
+    )
+  }
+
   const user = await getCurrentStoreUser()
 
   return (

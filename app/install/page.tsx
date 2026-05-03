@@ -9,10 +9,10 @@ type InstallStatus = {
 }
 
 const steps = [
-  { title: '安装协议', caption: '请阅读并同意安装许可协议。' },
-  { title: '环境检测', caption: '确认数据库连接与运行环境。' },
-  { title: '管理员账号', caption: '创建第一个管理员账户。' },
-  { title: '确认安装', caption: '写入初始数据并完成安装。' }
+  { title: '环境检测', caption: '确认 Supabase 连接与数据库状态。' },
+  { title: '数据库连接', caption: '使用 Supabase Cloud 托管数据库。' },
+  { title: '管理员账号', caption: '创建首次登录后台的管理员。' },
+  { title: '确认安装', caption: '写入基础数据并锁定安装状态。' }
 ]
 
 export default function InstallPage() {
@@ -31,7 +31,7 @@ export default function InstallPage() {
   const [form, setForm] = useState({
     site_name: 'MXStore',
     admin_username: 'admin',
-    admin_email: '',
+    admin_email: 'admin@example.com',
     admin_password: ''
   })
 
@@ -43,7 +43,7 @@ export default function InstallPage() {
     setToastTone(tone)
     setToastVisible(true)
     if (toastTimer.current) clearTimeout(toastTimer.current)
-    toastTimer.current = setTimeout(() => setToastVisible(false), 3500)
+    toastTimer.current = setTimeout(() => setToastVisible(false), 3200)
   }, [])
 
   const checkStatus = useCallback(async () => {
@@ -54,7 +54,7 @@ export default function InstallPage() {
       setInstalled(data.installed)
       setEnvChecks(data.checks)
       if (data.installed) {
-        showToast('系统已安装，不能重复安装。', 'success')
+        showToast('系统已安装，安装接口已锁定，不能重复安装。', 'success')
         setStepIndex(3)
       } else {
         showToast('系统尚未安装，请按步骤完成初始化。', 'info')
@@ -88,7 +88,7 @@ export default function InstallPage() {
       if (!res.ok) throw new Error(await res.text())
       const data = await res.json()
       setInstallResult(data)
-      showToast('安装完成！', 'success')
+      showToast('初始化数据执行完成。', 'success')
       await checkStatus()
       setStepIndex(3)
     } catch (err) {
@@ -98,10 +98,17 @@ export default function InstallPage() {
     }
   }
 
-  const canNext = stepIndex === 0 ? agreementAccepted
-    : stepIndex === 1 ? true
-    : stepIndex === 2 ? (form.admin_username.length >= 2 && form.admin_email.includes('@') && form.admin_password.length >= 8)
-    : false
+  function checkStatusLabel(value: string) {
+    return value === 'ok' ? '正常' : '提示'
+  }
+
+  const canNext = installed
+    ? stepIndex < 3
+    : stepIndex === 1
+    ? true
+    : stepIndex === 2
+    ? !!form.site_name && !!form.admin_username && !!form.admin_email && form.admin_password.length >= 8
+    : stepIndex < 3
 
   function nextStep() {
     if (stepIndex < steps.length - 1 && canNext) setStepIndex(stepIndex + 1)
@@ -114,273 +121,612 @@ export default function InstallPage() {
   const progress = ((stepIndex + 1) / steps.length) * 100
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <main className="install-page">
       {/* Toast */}
-      <div className={`fixed left-1/2 top-6 z-50 -translate-x-1/2 transition-all duration-300 ${toastVisible ? 'opacity-100 translate-y-0' : 'pointer-events-none opacity-0 -translate-y-2'}`}>
-        <div className={`rounded-2xl px-6 py-3 text-sm font-medium shadow-lg ${toastTone === 'success' ? 'bg-emerald-600 text-white' : toastTone === 'warning' ? 'bg-rose-600 text-white' : 'bg-slate-800 text-white'}`}>
+      {toastVisible && (
+        <div className={`install-toast ${toastTone}`}>
           {statusMsg}
         </div>
-      </div>
+      )}
 
-      <div className="mx-auto flex min-h-screen max-w-4xl items-center justify-center px-4 py-12">
-        {!agreementAccepted ? (
-          /* Agreement Page */
-          <section className="w-full max-w-2xl">
-            <div className="mb-8 text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-600 text-2xl font-bold text-white">M</div>
-              <h1 className="text-2xl font-bold text-slate-900">MXStore 安装向导</h1>
-              <p className="mt-2 text-sm text-slate-500">欢迎使用 MXStore 应用商店管理系统</p>
-            </div>
+      {!agreementAccepted ? (
+        /* Agreement */
+        <section className="install-card install-hero install-agreement">
+          <div className="agreement-logo">
+            <span className="brand-logo">
+              <span>MX</span><span className="brand-logo-highlight">Store</span>
+            </span>
+          </div>
 
-            <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-              <div className="mb-6">
-                <p className="text-xs font-medium uppercase tracking-widest text-blue-600">安装许可与隐私政策</p>
-                <h2 className="mt-2 text-xl font-semibold text-slate-900">使用前请阅读并同意协议</h2>
-              </div>
+          <article className="agreement-article" ref={agreementRef} onScroll={onAgreementScroll}>
+            <div className="kicker">安装许可与隐私政策</div>
+            <h1>使用前请阅读并同意协议</h1>
+            <p>
+              MXStore（MXstoreCMS）是一个应用商店内容管理系统。程序、界面、文档、部署方案以及相关服务能力均受法律保护，未经 Maishan Inc.
+              明确授权，将本程序用于商业销售、转售、二次分发、商业托管、付费代建或其他商业化获利行为，均可能构成侵权。
+            </p>
+            <p>
+              为保障程序稳定运行、异常排查、授权合规和服务质量，安装并使用本程序即表示你同意我们在必要范围内收集并上传当前部署环境的域名、IP 地址、设备与运行环境信息。
+              这些信息仅用于安全风控、稳定性分析、兼容性判断和授权管理，不会作为与程序运行无关的用途。
+            </p>
+            <p>
+              你应确保填写的管理员账号、站点信息真实、有效，并对部署环境的合法性、内容合规性、账号安全和访问权限承担责任。Maishan Inc.
+              可以根据安全事件、异常访问、授权状态和版本稳定性对必要信息进行核验，以降低恶意镜像、盗版分发、批量攻击、异常采集、未授权商用和数据泄露风险。
+            </p>
+            <p>
+              本程序会在安装过程中写入数据库安装状态、管理员账号、站点配置。安装完成后，系统将依据你配置的信息进行访问控制。
+              你不得移除、绕过、隐藏或篡改授权声明、版权声明、隐私提示和安全校验逻辑，也不得将本程序包装为未经授权的商业产品向第三方销售。
+            </p>
+            <p>
+              如果你不同意上述许可与隐私条款，请停止安装并删除本程序。继续安装表示你已阅读、理解并同意本协议及隐私政策。
+            </p>
+            <p>
+              请继续向下滚动并完整阅读本协议。只有当你滚动到协议正文底部后，安装程序才会允许点击&ldquo;我同意此协议&rdquo;。点击同意后，系统会进入初始化安装流程。
+            </p>
+          </article>
 
-              <div
-                ref={agreementRef}
-                onScroll={onAgreementScroll}
-                className="mb-6 max-h-80 space-y-4 overflow-y-auto rounded-2xl bg-slate-50 p-6 text-sm leading-relaxed text-slate-600"
-              >
-                <p>
-                  MXStore（MXstoreCMS）是一个应用商店内容管理系统。安装和使用本程序即表示你同意以下条款。
-                </p>
-                <p>
-                  本程序基于 Supabase Cloud 作为数据库服务，部署于 Vercel 平台。安装过程中需要你提供有效的 Supabase 项目连接信息（URL、Anon Key、Service Role Key）。你应确保这些信息的真实性和安全性。
-                </p>
-                <p>
-                  安装程序将在你的 Supabase 数据库中创建必要的数据表、行级安全策略（RLS）和初始管理员账号。安装完成后，管理员账号将拥有系统的完全管理权限，请妥善保管管理员密码。
-                </p>
-                <p>
-                  你应自行负责部署环境的安全性，包括但不限于：环境变量的保密、Supabase 项目的访问控制、Vercel 部署配置、域名与 SSL 证书的配置。任何因配置不当导致的安全问题由部署者自行承担。
-                </p>
-                <p>
-                  本程序会记录安装时间、站点名称等基本信息到数据库中。这些信息仅用于系统运行和管理，不会被用于其他用途。
-                </p>
-                <p>
-                  你不得移除、修改或隐藏本程序中的版权声明和授权信息。未经授权，不得将本程序用于商业转售或二次分发。
-                </p>
-                <p>
-                  如果你不同意上述条款，请停止安装并删除本程序。继续安装表示你已阅读、理解并同意本协议。
-                </p>
-                <p>
-                  请继续向下滚动以阅读完整内容。滚动到底部后，&ldquo;我同意此协议&rdquo;按钮将变为可用状态。
-                </p>
-              </div>
-
+          <button
+            type="button"
+            className="btn-primary agreement-accept"
+            disabled={!agreementRead}
+            onClick={() => setAgreementAccepted(true)}
+          >
+            {agreementRead ? '我同意此协议' : '阅读到底部后可同意'}
+          </button>
+        </section>
+      ) : (
+        /* Wizard */
+        <div className="install-shell">
+          {/* Step indicators outside card */}
+          <div className="step-grid step-grid-outside">
+            {steps.map((step, i) => (
               <button
+                key={step.title}
                 type="button"
-                disabled={!agreementRead}
-                onClick={() => setAgreementAccepted(true)}
-                className="w-full rounded-2xl bg-blue-600 px-6 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+                className={`step ${i === stepIndex ? 'active' : ''} ${i < stepIndex || installed ? 'done' : ''}`}
+                disabled={installed || i > stepIndex + 1}
+                onClick={() => { if (!installed && i <= stepIndex + 1) setStepIndex(i) }}
               >
-                {agreementRead ? '我同意此协议' : '请阅读到底部后可同意'}
+                <strong>{String(i + 1).padStart(2, '0')}</strong>
+                <span>{step.title}</span>
               </button>
-            </div>
-          </section>
-        ) : (
-          /* Wizard */
-          <section className="w-full">
-            {/* Step Indicators */}
-            <div className="mb-8 flex items-center justify-center gap-2">
-              {steps.map((step, i) => (
-                <button
-                  key={step.title}
-                  type="button"
-                  disabled={installed || i > stepIndex + 1}
-                  onClick={() => { if (!installed && i <= stepIndex + 1) setStepIndex(i) }}
-                  className={`flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm transition ${
-                    i === stepIndex
-                      ? 'bg-blue-600 text-white shadow-sm'
-                      : i < stepIndex || installed
-                      ? 'bg-emerald-50 text-emerald-700'
-                      : 'bg-white text-slate-400'
-                  }`}
-                >
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold" style={i === stepIndex ? { background: 'rgba(255,255,255,0.25)' } : {}}>
-                    {String(i + 1).padStart(2, '0')}
-                  </span>
-                  <span className="hidden sm:inline">{step.title}</span>
-                </button>
-              ))}
-            </div>
+            ))}
+          </div>
 
-            {/* Main Card */}
-            <div className="mx-auto max-w-2xl rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-              {/* Header */}
-              <div className="mb-6 flex items-center justify-between">
-                <div>
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-lg font-bold text-white">M</div>
-                  <h2 className="mt-3 text-xl font-semibold text-slate-900">{steps[stepIndex].title}</h2>
-                  <p className="mt-1 text-sm text-slate-500">{steps[stepIndex].caption}</p>
-                </div>
-                <span className={`rounded-full px-3 py-1 text-xs font-medium ${installed ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
-                  {installed ? '已安装' : '待安装'}
+          {/* Main card */}
+          <section className="install-card install-hero install-wizard">
+            {/* Header with logo + badge */}
+            <div className="install-heading">
+              <div className="install-title-block">
+                <span className="brand-logo">
+                  <span>MX</span><span className="brand-logo-highlight">Store</span>
                 </span>
               </div>
-
-              {/* Step Content */}
-              <div className="mb-8">
-                {stepIndex === 0 && (
-                  <div className="rounded-2xl bg-emerald-50 p-6 text-center">
-                    <svg className="mx-auto mb-3 h-12 w-12 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                    <p className="text-lg font-medium text-emerald-800">协议已同意</p>
-                    <p className="mt-1 text-sm text-emerald-600">请点击&ldquo;下一步&rdquo;继续环境检测。</p>
-                  </div>
-                )}
-
-                {stepIndex === 1 && (
-                  <div className="space-y-3">
-                    {envChecks.map((check) => (
-                      <div key={check.name} className="flex items-center gap-4 rounded-2xl border border-slate-200 px-5 py-4">
-                        <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${check.status === 'ok' ? 'bg-emerald-50 text-emerald-700' : check.status === 'error' ? 'bg-rose-50 text-rose-700' : 'bg-amber-50 text-amber-700'}`}>
-                          {check.status === 'ok' ? '正常' : check.status === 'error' ? '异常' : '待检测'}
-                        </span>
-                        <div>
-                          <p className="font-medium text-slate-900">{check.name}</p>
-                          <p className="text-xs text-slate-500">{check.message}</p>
-                        </div>
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      disabled={checking}
-                      onClick={checkStatus}
-                      className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-50"
-                    >
-                      {checking ? '检测中...' : '重新检测'}
-                    </button>
-                  </div>
-                )}
-
-                {stepIndex === 2 && (
-                  <form id="install-form" onSubmit={runInstall} className="space-y-4">
-                    <div>
-                      <label className="mb-1.5 block text-sm font-medium text-slate-700">站点名称</label>
-                      <input
-                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                        value={form.site_name}
-                        onChange={(e) => setForm({ ...form, site_name: e.target.value })}
-                        disabled={installed}
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1.5 block text-sm font-medium text-slate-700">管理员用户名</label>
-                      <input
-                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                        value={form.admin_username}
-                        onChange={(e) => setForm({ ...form, admin_username: e.target.value })}
-                        disabled={installed}
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1.5 block text-sm font-medium text-slate-700">管理员邮箱</label>
-                      <input
-                        type="email"
-                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                        placeholder="admin@example.com"
-                        value={form.admin_email}
-                        onChange={(e) => setForm({ ...form, admin_email: e.target.value })}
-                        disabled={installed}
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1.5 block text-sm font-medium text-slate-700">管理员密码</label>
-                      <input
-                        type="password"
-                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                        placeholder="至少 8 位"
-                        value={form.admin_password}
-                        onChange={(e) => setForm({ ...form, admin_password: e.target.value })}
-                        disabled={installed}
-                      />
-                      {form.admin_password.length > 0 && form.admin_password.length < 8 && (
-                        <p className="mt-1 text-xs text-rose-500">密码长度至少 8 位</p>
-                      )}
-                    </div>
-                  </form>
-                )}
-
-                {stepIndex === 3 && (
-                  <>
-                    {!installed ? (
-                      <div className="space-y-3">
-                        <div className="rounded-2xl bg-slate-900 p-5 font-mono text-sm">
-                          {[
-                            { text: `mxstore db:check --supabase=${process.env.NEXT_PUBLIC_SUPABASE_URL ? 'ok' : 'pending'}`, done: true },
-                            { text: `mxstore migrate --apply`, done: true },
-                            { text: `mxstore admin:create --user="${form.admin_username}" --email="${form.admin_email}"`, done: !!installResult },
-                            { text: `mxstore settings:init --site="${form.site_name}"`, done: !!installResult },
-                            { text: `mxstore install:lock --status=installed`, done: installed }
-                          ].map((line, i) => (
-                            <div key={i} className={`flex items-center gap-3 py-1 ${line.done ? 'text-emerald-400' : installing ? 'text-amber-400' : 'text-slate-500'}`}>
-                              <span className="w-10 text-right text-xs">{line.done ? 'done' : installing ? 'run' : 'wait'}</span>
-                              <code>{line.text}</code>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="rounded-2xl bg-emerald-50 py-12 text-center">
-                        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
-                          <svg className="h-8 w-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                        </div>
-                        <h3 className="text-xl font-semibold text-emerald-900">安装完成</h3>
-                        <p className="mt-2 text-sm text-emerald-700">管理员账号已创建，数据库已初始化。</p>
-                        <a
-                          href="/login"
-                          className="mt-6 inline-block rounded-2xl bg-blue-600 px-8 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700"
-                        >
-                          进入登录页面
-                        </a>
-                      </div>
-                    )}
-                  </>
-                )}
+              <div className="install-actions">
+                <div className={`install-badge ${installed ? 'success' : 'warning'}`}>
+                  {installed ? '已安装' : '待安装'}
+                </div>
               </div>
-
-              {/* Navigation */}
-              <div className="flex items-center justify-between border-t border-slate-100 pt-6">
-                <button
-                  type="button"
-                  disabled={stepIndex === 0 || installed}
-                  onClick={prevStep}
-                  className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  上一步
-                </button>
-                {stepIndex < 3 ? (
-                  <button
-                    type="button"
-                    disabled={!canNext}
-                    onClick={nextStep}
-                    className="rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
-                  >
-                    下一步
-                  </button>
-                ) : !installed ? (
-                  <button
-                    type="submit"
-                    form="install-form"
-                    disabled={installing || installed}
-                    className="rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
-                  >
-                    {installing ? '安装中...' : '开始安装'}
-                  </button>
-                ) : null}
-              </div>
-
-              {/* Progress bar */}
-              <div className="mt-6 h-1 overflow-hidden rounded-full bg-slate-100">
-                <div className="h-full rounded-full bg-blue-600 transition-all duration-500" style={{ width: `${progress}%` }} />
-              </div>
-
-              <p className="mt-4 text-center text-xs text-slate-400">Copyright &copy; 2026 MXStore. All rights reserved.</p>
             </div>
+
+            {/* Step content */}
+            <div className="install-step-page">
+              <div className="install-step-title">
+                <h2>{steps[stepIndex].title}</h2>
+              </div>
+
+              {/* Step 0: Environment detection */}
+              {stepIndex === 0 && (
+                <section className="install-section install-section-with-action">
+                  <div className="install-section-body">
+                    <div className="check-list">
+                      {envChecks.map((item) => (
+                        <div key={item.name} className="check-row">
+                          <span className={`tag ${item.status === 'ok' ? 'success' : 'info'}`}>{checkStatusLabel(item.status)}</span>
+                          <div><strong>{item.name}</strong><small>{item.message}</small></div>
+                        </div>
+                      ))}
+                      <div className="check-row">
+                        <span className="tag success">固定</span>
+                        <div><strong>数据库</strong><small>使用 Supabase Cloud 托管，通过环境变量配置连接。</small></div>
+                      </div>
+                      <div className="check-row">
+                        <span className="tag info">状态</span>
+                        <div><strong>安装状态</strong><small>以数据库中 system_settings.installed=true 为准。</small></div>
+                      </div>
+                    </div>
+                  </div>
+                  <aside className="install-side-actions">
+                    <button type="button" disabled={checking} onClick={checkStatus}>{checking ? '检测中...' : '重新检测'}</button>
+                  </aside>
+                </section>
+              )}
+
+              {/* Step 1: Database connection */}
+              {stepIndex === 1 && (
+                <section className="install-section install-section-with-action">
+                  <div className="install-section-body">
+                    <div className="grid two">
+                      <label>数据库类型<input value="Supabase Cloud" readOnly /></label>
+                      <label>连接状态<input value="通过环境变量自动连接" readOnly /></label>
+                      <label>Supabase URL<input value={process.env.NEXT_PUBLIC_SUPABASE_URL ? '已配置' : '未配置'} readOnly /></label>
+                      <label>Service Role Key<input value={process.env.SUPABASE_SERVICE_ROLE_KEY ? '已配置' : '未配置'} type="password" readOnly /></label>
+                    </div>
+                  </div>
+                  <aside className="install-side-actions">
+                    <button type="button" disabled>自动连接</button>
+                  </aside>
+                </section>
+              )}
+
+              {/* Step 2: Admin account */}
+              {stepIndex === 2 && (
+                <section className="install-section">
+                  <form id="install-form" onSubmit={runInstall}>
+                    <div className="grid two">
+                      <label>站点名称
+                        <input
+                          value={form.site_name}
+                          onChange={(e) => setForm({ ...form, site_name: e.target.value })}
+                          disabled={installed}
+                        />
+                      </label>
+                      <label>管理员
+                        <input
+                          value={form.admin_username}
+                          onChange={(e) => setForm({ ...form, admin_username: e.target.value })}
+                          disabled={installed}
+                        />
+                      </label>
+                      <label>邮箱
+                        <input
+                          type="email"
+                          value={form.admin_email}
+                          onChange={(e) => setForm({ ...form, admin_email: e.target.value })}
+                          disabled={installed}
+                          placeholder="admin@example.com"
+                        />
+                      </label>
+                      <label>密码
+                        <input
+                          type="password"
+                          value={form.admin_password}
+                          onChange={(e) => setForm({ ...form, admin_password: e.target.value })}
+                          disabled={installed}
+                          placeholder="至少 8 位"
+                        />
+                      </label>
+                    </div>
+                    <p className="form-hint">密码至少 8 位。安装完成后可登录后台修改。</p>
+                  </form>
+                </section>
+              )}
+
+              {/* Step 3: Confirm & Install */}
+              {stepIndex === 3 && (
+                <section className={`install-section command-stage ${installed ? 'complete' : ''}`}>
+                  {!installed ? (
+                    <div className="command-box">
+                      {[
+                        { text: `mxstore env:check --supabase=${process.env.NEXT_PUBLIC_SUPABASE_URL ? 'ok' : 'pending'}`, done: true },
+                        { text: `mxstore migrate --apply`, done: true },
+                        { text: `mxstore admin:create --user="${form.admin_username}" --email="${form.admin_email}"`, done: !!installResult },
+                        { text: `mxstore settings:init --site="${form.site_name}"`, done: !!installResult },
+                        { text: installed ? 'mxstore install:lock --status=installed' : 'mxstore install:lock --status=pending', done: installed }
+                      ].map((line, i) => (
+                        <div key={i} className={`command-line ${line.done ? 'done' : installing && !line.done ? 'running' : ''}`}>
+                          <span>{line.done ? 'done' : installing ? 'run' : 'wait'}</span>
+                          <code>{line.text}</code>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="install-complete">
+                      <div className="fireworks" aria-hidden="true">
+                        {Array.from({ length: 18 }, (_, i) => (
+                          <span key={i} style={{ '--i': String(i + 1) } as React.CSSProperties} />
+                        ))}
+                      </div>
+                      <h2>安装完成</h2>
+                      <p>初始化数据已写入，管理员账号已创建。</p>
+                      <a className="button-link" href="/login">进入登录页面</a>
+                    </div>
+                  )}
+                </section>
+              )}
+            </div>
+
+            {/* Navigation */}
+            <div className="install-nav">
+              <button type="button" disabled={stepIndex === 0 || installed} onClick={prevStep}>上一步</button>
+              {stepIndex < 3 ? (
+                <button type="button" className="btn-primary" disabled={!canNext} onClick={nextStep}>下一步</button>
+              ) : !installed ? (
+                <button type="submit" form="install-form" className="btn-primary" disabled={installing || installed}>
+                  {installing ? '安装中...' : '开始安装'}
+                </button>
+              ) : null}
+            </div>
+
+            {/* Progress bar */}
+            <div className="install-progress install-progress-bottom">
+              <span style={{ width: `${progress}%` }} />
+            </div>
+
+            <footer className="install-copyright">Copyright &copy; 2026 Maishan Inc. &amp; MXStore. All rights reserved.</footer>
           </section>
-        )}
-      </div>
-    </div>
+        </div>
+      )}
+
+      <style jsx global>{`
+        .install-page {
+          min-height: 100vh;
+          display: grid;
+          place-items: center;
+          padding: 30px;
+          background: #f8fafc;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .install-page * { box-sizing: border-box; }
+
+        /* Toast */
+        .install-toast {
+          position: fixed;
+          top: 24px;
+          right: 24px;
+          z-index: 100;
+          padding: 14px 22px;
+          border-radius: 14px;
+          border: 1px solid #e2e8f0;
+          background: #ffffff;
+          color: #1e293b;
+          font-size: 14px;
+          box-shadow: 0 16px 40px rgba(0,0,0,.08);
+          animation: toastIn .22s ease;
+        }
+        .install-toast.warning { border-color: rgba(251,191,36,.45); color: #b45309; }
+        .install-toast.success { border-color: #d1fae5; color: #047857; }
+
+        /* Shell */
+        .install-shell { width: min(860px, 100%); }
+
+        /* Card */
+        .install-card {
+          border: 1px solid #e2e8f0;
+          background: #ffffff;
+          border-radius: 24px;
+          box-shadow: 0 1px 3px rgba(0,0,0,.04);
+        }
+
+        /* Agreement */
+        .install-agreement {
+          display: grid;
+          justify-items: center;
+          text-align: center;
+          gap: 22px;
+          padding: 34px 34px 38px;
+          width: min(720px, 100%);
+        }
+        .agreement-logo .brand-logo { font-size: 28px; }
+        .agreement-article {
+          max-width: 680px;
+          display: grid;
+          gap: 10px;
+        }
+        .agreement-article h1 { margin: 6px 0 4px; font-size: 32px; color: #0f172a; }
+        .agreement-article p { margin: 0; line-height: 1.8; text-align: left; color: #64748b; font-size: 14px; }
+        .agreement-accept { min-width: 210px; }
+
+        /* Brand logo */
+        .brand-logo {
+          display: inline-flex;
+          align-items: center;
+          color: #0f172a;
+          font-size: 22px;
+          font-weight: 700;
+          letter-spacing: .04em;
+          margin-bottom: 16px;
+        }
+        .brand-logo-highlight {
+          background: #0f172a;
+          color: #ffffff;
+          padding: 2px 5px;
+          margin: 0 2px;
+          border-radius: 3px;
+        }
+
+        /* Kicker */
+        .kicker {
+          color: #047857;
+          text-transform: uppercase;
+          letter-spacing: .14em;
+          font-size: 12px;
+          font-weight: 700;
+        }
+
+        /* Step grid */
+        .step-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 10px;
+          margin: 22px 0 14px;
+        }
+        .step-grid-outside { width: 100%; margin: 0 0 12px; }
+        .step {
+          border: 0;
+          border-bottom: 2px solid #e2e8f0;
+          border-radius: 0;
+          padding: 0 0 12px;
+          background: transparent;
+          color: #94a3b8;
+          display: grid;
+          gap: 4px;
+          text-align: left;
+          cursor: pointer;
+          font-size: 14px;
+          transition: all .2s;
+        }
+        .step strong { color: #94a3b8; letter-spacing: .12em; font-size: 12px; }
+        .step.active { border-color: #0f172a; color: #0f172a; }
+        .step.active strong { color: #047857; }
+        .step.done { border-color: #cbd5e1; color: #64748b; }
+        .step:disabled { cursor: default; }
+
+        /* Install heading */
+        .install-hero { position: relative; overflow: hidden; }
+        .install-heading {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 24px;
+          position: relative;
+          min-height: 42px;
+        }
+        .install-title-block { min-width: 0; }
+        .install-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
+        .install-badge {
+          border-radius: 999px;
+          padding: 10px 14px;
+          border: 1px solid #e2e8f0;
+          color: #94a3b8;
+          font-size: 12px;
+          font-weight: 500;
+        }
+        .install-badge.success { color: #047857; background: #ecfdf5; border-color: #d1fae5; }
+        .install-badge.warning { color: #b45309; background: #fffbeb; border-color: #fde68a; }
+
+        /* Step page */
+        .install-step-page { margin-top: 24px; min-height: 382px; }
+        .install-step-title { display: grid; gap: 6px; margin-bottom: 14px; }
+        .install-step-title h2 { margin: 0; color: #0f172a; font-size: 20px; font-weight: 600; }
+        .install-section { padding-top: 6px; }
+        .install-section-with-action {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) 174px;
+          gap: 18px;
+          align-items: start;
+        }
+        .install-side-actions {
+          display: flex;
+          justify-content: flex-end;
+          padding-top: 12px;
+        }
+        .install-side-actions button { width: 100%; }
+
+        /* Check list */
+        .check-list { display: grid; gap: 10px; margin: 12px 0 18px; }
+        .check-row {
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+          padding: 8px 0;
+          border-bottom: 1px solid #f1f5f9;
+        }
+        .check-row:last-child { border-bottom: 0; }
+        .check-row strong { display: block; color: #0f172a; font-size: 14px; }
+        .check-row small { display: block; color: #94a3b8; font-size: 12px; margin-top: 2px; }
+        .tag {
+          display: inline-block;
+          padding: 4px 10px;
+          border-radius: 6px;
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: .04em;
+          text-transform: uppercase;
+          white-space: nowrap;
+          margin-top: 2px;
+        }
+        .tag.success { color: #047857; background: #ecfdf5; }
+        .tag.info { color: #0369a1; background: #f0f9ff; }
+
+        /* Grid */
+        .grid.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+        .grid.two label {
+          display: grid;
+          gap: 6px;
+          font-size: 13px;
+          font-weight: 500;
+          color: #475569;
+        }
+        .grid.two input, .install-section input {
+          padding: 10px 14px;
+          border: 1px solid #e2e8f0;
+          border-radius: 10px;
+          background: #ffffff;
+          color: #0f172a;
+          font-size: 14px;
+          outline: none;
+          transition: border-color .2s;
+        }
+        .grid-two input:focus, .install-section input:focus { border-color: #3b82f6; }
+        input[readonly] { color: #94a3b8; border-color: #f1f5f9; background: #f8fafc; }
+        .form-hint { color: #94a3b8; font-size: 12px; margin-top: 12px; }
+
+        /* Command stage */
+        .command-stage { min-height: 300px; display: grid; align-items: center; }
+        .command-box {
+          border: 1px solid #e2e8f0;
+          border-radius: 16px;
+          background: #f8fafc;
+          padding: 28px;
+          display: grid;
+          gap: 12px;
+        }
+        .command-line {
+          display: grid;
+          grid-template-columns: 54px minmax(0, 1fr);
+          gap: 12px;
+          align-items: center;
+          color: #94a3b8;
+        }
+        .command-line span {
+          text-transform: uppercase;
+          font-size: 11px;
+          letter-spacing: .12em;
+          text-align: right;
+        }
+        .command-line code {
+          display: block;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          font-size: 13px;
+          background: transparent;
+          color: #94a3b8;
+        }
+        .command-line.done, .command-line.done code { color: #0f172a; }
+        .command-line.running code::after {
+          content: "";
+          display: inline-block;
+          width: 8px;
+          height: 16px;
+          background: #0f172a;
+          margin-left: 4px;
+          animation: caret 1s steps(1) infinite;
+          vertical-align: text-bottom;
+        }
+
+        /* Complete */
+        .install-complete { text-align: center; padding: 40px 0; }
+        .install-complete h2 { font-size: 24px; color: #0f172a; margin: 0 0 8px; }
+        .install-complete p { color: #64748b; margin: 0 0 24px; }
+        .button-link {
+          display: inline-block;
+          padding: 12px 32px;
+          background: #0f172a;
+          color: #ffffff;
+          border-radius: 10px;
+          text-decoration: none;
+          font-size: 14px;
+          font-weight: 500;
+          transition: background .2s;
+        }
+        .button-link:hover { background: #1e293b; }
+
+        /* Fireworks */
+        .fireworks {
+          position: relative;
+          width: 120px;
+          height: 120px;
+          margin: 0 auto 24px;
+        }
+        .fireworks span {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 4px;
+          height: 4px;
+          border-radius: 50%;
+          background: #047857;
+          animation: firework 1.2s ease-out calc(var(--i) * 0.06s) both;
+        }
+
+        /* Buttons */
+        .btn-primary {
+          background: #0f172a;
+          border: 1px solid #0f172a;
+          color: #ffffff;
+          padding: 9px 14px;
+          border-radius: 8px;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 500;
+          transition: all .2s;
+        }
+        .btn-primary:hover { background: #1e293b; }
+        .btn-primary:disabled { opacity: .4; cursor: default; }
+
+        .install-section button:not(.btn-primary),
+        .install-side-actions button {
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          color: #475569;
+          padding: 9px 14px;
+          border-radius: 8px;
+          cursor: pointer;
+          font-size: 14px;
+          transition: all .2s;
+        }
+        .install-section button:not(.btn-primary):hover,
+        .install-side-actions button:hover { background: #f8fafc; }
+        .install-section button:not(.btn-primary):disabled,
+        .install-side-actions button:disabled { opacity: .4; cursor: default; }
+
+        /* Nav */
+        .install-nav { display: flex; justify-content: space-between; gap: 12px; margin-top: 18px; }
+
+        /* Progress */
+        .install-progress {
+          height: 6px;
+          border-radius: 999px;
+          background: #f1f5f9;
+          overflow: hidden;
+          border: 1px solid #e2e8f0;
+        }
+        .install-progress span {
+          display: block;
+          height: 100%;
+          background: #0f172a;
+          transition: width .24s ease;
+        }
+        .install-progress-bottom {
+          position: absolute;
+          left: -1px;
+          right: -1px;
+          bottom: 0;
+          border: 0;
+          border-radius: 0 0 24px 24px;
+        }
+
+        /* Copyright */
+        .install-copyright {
+          position: absolute;
+          left: 20px;
+          right: 20px;
+          bottom: 14px;
+          font-size: 11px;
+          color: #cbd5e1;
+          text-align: center;
+          pointer-events: none;
+        }
+
+        /* Wizard */
+        .install-wizard { padding-bottom: 54px; }
+
+        /* Animations */
+        @keyframes caret {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0; }
+        }
+        @keyframes firework {
+          0% { transform: translate(-50%, -50%) rotate(calc(var(--i) * 20deg)) translateY(0); opacity: 1; }
+          100% { transform: translate(-50%, -50%) rotate(calc(var(--i) * 20deg)) translateY(-60px); opacity: 0; }
+        }
+        @keyframes toastIn {
+          from { opacity: 0; transform: translateX(-28px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+      `}</style>
+    </main>
   )
 }
