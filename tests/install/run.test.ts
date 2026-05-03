@@ -11,8 +11,13 @@ const validBody = {
 
 type MockOptions = {
   existingEmail?: string
+}
+
+type RunOptions = {
+  dbUrl?: string
+  migrationError?: Error
   installed?: boolean
-  profileError?: { message: string } | null
+  writeError?: Error
 }
 
 function createMockSupabase(options: MockOptions = {}) {
@@ -25,7 +30,6 @@ function createMockSupabase(options: MockOptions = {}) {
     },
     error: null
   })
-  const tableUpserts: Record<string, ReturnType<typeof vi.fn>> = {}
 
   return {
     auth: {
@@ -35,31 +39,13 @@ function createMockSupabase(options: MockOptions = {}) {
         updateUserById
       }
     },
-    from: vi.fn((table: string) => {
-      tableUpserts[table] ??= vi.fn().mockResolvedValue({
-        data: null,
-        error: table === 'store_users' ? options.profileError ?? null : null
-      })
-
-      return {
-        select: vi.fn(() => ({
-          eq: vi.fn().mockReturnValue({
-            maybeSingle: vi.fn().mockResolvedValue({
-              data: table === 'system_settings' && options.installed ? { value: 'true' } : null,
-              error: null
-            })
-          })
-        })),
-        upsert: tableUpserts[table]
-      }
+    from: vi.fn(() => {
+      throw new Error('PostgREST schema cache should not be used during install')
     })
   }
 }
 
-async function runInstallWithMock(
-  mockSupabase: ReturnType<typeof createMockSupabase>,
-  options: { dbUrl?: string; migrationError?: Error } = {}
-) {
+async function runInstallWithMock(mockSupabase: ReturnType<typeof createMockSupabase>, options: RunOptions = {}) {
   vi.resetModules()
   process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.supabase.co'
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-key'
@@ -74,6 +60,13 @@ async function runInstallWithMock(
     applyInstallMigrations.mockRejectedValue(options.migrationError)
   }
 
+  const readInstalledSetting = vi.fn().mockResolvedValue(options.installed ?? false)
+  const writeInstallRecords = vi.fn().mockResolvedValue(undefined)
+  if (options.writeError) {
+    writeInstallRecords.mockRejectedValue(options.writeError)
+  }
+
+  vi.doMock('@/lib/install/database', () => ({ readInstalledSetting, writeInstallRecords }))
   vi.doMock('@/lib/install/migrations', () => ({ applyInstallMigrations }))
   vi.doMock('@/lib/supabase/admin', () => ({
     createAdminClient: () => mockSupabase
@@ -86,7 +79,12 @@ async function runInstallWithMock(
     body: JSON.stringify(validBody)
   })
 
-  return { response: await POST(request as never), applyInstallMigrations }
+  return {
+    response: await POST(request as never),
+    applyInstallMigrations,
+    readInstalledSetting,
+    writeInstallRecords
+  }
 }
 
 afterEach(() => {
@@ -106,12 +104,13 @@ describe('install run', () => {
     expect(mockSupabase.auth.admin.createUser).not.toHaveBeenCalled()
   })
 
-  test('applies migrations before creating an auth user', async () => {
+  test('applies migrations and reads installed state before creating an auth user', async () => {
     const mockSupabase = createMockSupabase()
-    const { response, applyInstallMigrations } = await runInstallWithMock(mockSupabase)
+    const { response, applyInstallMigrations, readInstalledSetting } = await runInstallWithMock(mockSupabase)
 
     expect(response.ok).toBe(true)
-    expect(applyInstallMigrations).toHaveBeenCalledBefore(mockSupabase.auth.admin.createUser)
+    expect(applyInstallMigrations).toHaveBeenCalledBefore(readInstalledSetting)
+    expect(readInstalledSetting).toHaveBeenCalledBefore(mockSupabase.auth.admin.createUser)
     expect(mockSupabase.auth.admin.createUser).toHaveBeenCalledWith({
       email: 'admin@example.com',
       password: 'admin1234',
@@ -129,9 +128,24 @@ describe('install run', () => {
     expect(mockSupabase.auth.admin.createUser).not.toHaveBeenCalled()
   })
 
+  test('does not depend on PostgREST schema cache after migrations', async () => {
+    const mockSupabase = createMockSupabase()
+    const { response, writeInstallRecords } = await runInstallWithMock(mockSupabase)
+
+    expect(response.ok).toBe(true)
+    expect(mockSupabase.from).not.toHaveBeenCalled()
+    expect(writeInstallRecords).toHaveBeenCalledWith(expect.objectContaining({
+      authUserId: 'auth-created',
+      email: 'admin@example.com',
+      displayName: 'admin',
+      siteName: 'MXStore',
+      siteDomain: 'https://example.com'
+    }))
+  })
+
   test('reuses an existing auth user with the same email', async () => {
     const mockSupabase = createMockSupabase({ existingEmail: 'admin@example.com' })
-    const { response } = await runInstallWithMock(mockSupabase)
+    const { response, writeInstallRecords } = await runInstallWithMock(mockSupabase)
 
     expect(response.ok).toBe(true)
     expect(mockSupabase.auth.admin.createUser).not.toHaveBeenCalled()
@@ -140,26 +154,24 @@ describe('install run', () => {
       email_confirm: true,
       user_metadata: { name: 'admin' }
     })
-    expect(mockSupabase.from).toHaveBeenCalledWith('store_users')
-    expect(mockSupabase.from).toHaveBeenCalledWith('system_settings')
+    expect(writeInstallRecords).toHaveBeenCalledWith(expect.objectContaining({ authUserId: 'auth-existing' }))
   })
 
   test('rejects repeat installation after migrations are available', async () => {
-    const mockSupabase = createMockSupabase({ installed: true })
-    const { response } = await runInstallWithMock(mockSupabase)
+    const mockSupabase = createMockSupabase()
+    const { response } = await runInstallWithMock(mockSupabase, { installed: true })
 
     expect(response.status).toBe(409)
     await expect(response.text()).resolves.toContain('系统已安装')
     expect(mockSupabase.auth.admin.createUser).not.toHaveBeenCalled()
   })
 
-  test('does not mark installed when admin profile creation fails', async () => {
-    const mockSupabase = createMockSupabase({ profileError: { message: 'profile failed' } })
-    const { response } = await runInstallWithMock(mockSupabase)
+  test('does not report success when install record writes fail', async () => {
+    const mockSupabase = createMockSupabase()
+    const { response, writeInstallRecords } = await runInstallWithMock(mockSupabase, { writeError: new Error('profile failed') })
 
     expect(response.status).toBe(500)
-    await expect(response.text()).resolves.toContain('设置管理员角色失败')
-    const upsertCalls = mockSupabase.from('system_settings').upsert.mock.calls
-    expect(upsertCalls).toHaveLength(0)
+    await expect(response.text()).resolves.toContain('写入安装数据失败')
+    expect(writeInstallRecords).toHaveBeenCalled()
   })
 })

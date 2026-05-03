@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type { User } from '@supabase/supabase-js'
 import { z } from 'zod'
+import { readInstalledSetting, writeInstallRecords } from '@/lib/install/database'
 import { applyInstallMigrations } from '@/lib/install/migrations'
 
 export const dynamic = 'force-dynamic'
@@ -33,22 +34,19 @@ export async function POST(request: NextRequest) {
     return new NextResponse(error instanceof Error ? error.message : '数据库初始化失败', { status: 500 })
   }
 
-  const { createAdminClient } = await import('@/lib/supabase/admin')
-  const supabase = createAdminClient()
-
-  const { data: installedSettings, error: installedError } = await supabase
-    .from('system_settings')
-    .select('value')
-    .eq('key', 'installed')
-    .maybeSingle()
-
-  if (installedError) {
-    return new NextResponse(`读取安装状态失败: ${installedError.message}`, { status: 500 })
+  let installed: boolean
+  try {
+    installed = await readInstalledSetting()
+  } catch (error) {
+    return new NextResponse(`读取安装状态失败: ${error instanceof Error ? error.message : '未知错误'}`, { status: 500 })
   }
 
-  if (installedSettings?.value === 'true') {
+  if (installed) {
     return new NextResponse('系统已安装，不能重复安装', { status: 409 })
   }
+
+  const { createAdminClient } = await import('@/lib/supabase/admin')
+  const supabase = createAdminClient()
 
   const { data: authUsers, error: listUsersError } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 })
   if (listUsersError) {
@@ -102,38 +100,21 @@ export async function POST(request: NextRequest) {
     return new NextResponse('无法获取管理员认证用户', { status: 500 })
   }
 
-  const { error: profileError } = await supabase
-    .from('store_users')
-    .upsert(
-      {
-        auth_user_id: authUserId,
-        email: body.admin_email,
-        display_name: body.admin_username,
-        role: 'admin'
-      },
-      { onConflict: 'auth_user_id' }
-    )
-
-  if (profileError) {
-    return new NextResponse(`设置管理员角色失败: ${profileError.message}`, { status: 500 })
-  }
-
   const siteName = body.site_name || 'MXStore'
   const siteDomain = body.site_domain || ''
   const now = new Date().toISOString()
 
-  const settingsEntries = [
-    { key: 'installed', value: 'true', group_name: 'system' },
-    { key: 'site_name', value: siteName, group_name: 'site' },
-    { key: 'site_domain', value: siteDomain, group_name: 'site' },
-    { key: 'installed_at', value: now, group_name: 'system' }
-  ]
-
-  for (const entry of settingsEntries) {
-    const { error } = await supabase.from('system_settings').upsert(entry, { onConflict: 'key' })
-    if (error) {
-      return new NextResponse(`写入系统设置失败: ${error.message}`, { status: 500 })
-    }
+  try {
+    await writeInstallRecords({
+      authUserId,
+      email: body.admin_email,
+      displayName: body.admin_username,
+      siteName,
+      siteDomain,
+      installedAt: now
+    })
+  } catch (error) {
+    return new NextResponse(`写入安装数据失败: ${error instanceof Error ? error.message : '未知错误'}`, { status: 500 })
   }
 
   return NextResponse.json({
