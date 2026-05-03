@@ -2,7 +2,7 @@
 
 > 项目名称 MXstore-CMS · 产品名称 MXStore
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Maishan-Inc/MXstore-CMS)
+快速的使用Vercel+Supabase部署MXStore [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Maishan-Inc/MXstore-CMS)
 
 应用商店 CMS 与签名下载管理系统。基于 Next.js App Router + Supabase Cloud + Tailwind CSS 构建，支持 OpenList 签名下载、钱包登录、链上支付。
 
@@ -133,5 +133,5 @@ tests/                # 单元测试
 - [tasks/](tasks/) — 任务清单与设计文档
 
 ## 许可
-
-Copyright 2026 MXStore. All rights reserved.
+未经Maishan Inc.或中国大陆代理公司运行禁止使用此项目进行任何的商业行盈利.
+Copyright 2026 Maishan Inc. & MXStore. All rights reserved.
