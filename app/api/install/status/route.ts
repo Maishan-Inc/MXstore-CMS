@@ -1,17 +1,20 @@
 import { NextResponse } from 'next/server'
+import { checkDatabaseConnection } from '@/lib/install/database'
 
 export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
+type Check = { name: string; status: string; message: string }
 
 export async function GET() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   const supabaseConfigured = !!supabaseUrl && !!supabaseKey
 
-  const checks: Array<{ name: string; status: string; message: string }> = []
+  const checks: Check[] = []
   let supabase: Awaited<ReturnType<typeof import('@/lib/supabase/admin')['createAdminClient']>> | null = null
   let supabaseOk = false
 
-  // 1. Supabase 连接
   if (!supabaseConfigured) {
     checks.push({ name: 'Supabase 连接', status: 'error', message: '缺少 NEXT_PUBLIC_SUPABASE_URL 或 SUPABASE_SERVICE_ROLE_KEY' })
   } else {
@@ -26,7 +29,13 @@ export async function GET() {
     })
   }
 
-  // 2. Node 版本
+  const databaseCheck = await checkDatabaseConnection()
+  checks.push({
+    name: '数据库初始化权限',
+    status: databaseCheck.ok ? 'ok' : 'warning',
+    message: databaseCheck.ok ? '已配置，将在最后一步自动初始化' : `${databaseCheck.message}，最后安装时需要配置`
+  })
+
   const nodeVersion = process.version
   const nodeMajor = parseInt(nodeVersion.replace('v', '').split('.')[0], 10)
   checks.push({
@@ -35,7 +44,6 @@ export async function GET() {
     message: `${nodeVersion} ${nodeMajor >= 18 ? '' : '(需要 >= 18)'}`
   })
 
-  // 3. Next 版本
   let nextVersion = 'unknown'
   let nextOk = false
   try {
@@ -53,7 +61,7 @@ export async function GET() {
   })
 
   if (!supabaseOk || !supabase) {
-    checks.push({ name: '数据库表完整性', status: 'warning', message: '等待 Supabase 连接成功后检测' })
+    checks.push({ name: '数据库表完整性', status: 'ok', message: '等待 Supabase 连接成功后检测，安装时可自动初始化' })
     checks.push({ name: '安装状态', status: 'ok', message: '尚未检测' })
     checks.push({ name: '管理员账户', status: 'ok', message: '尚未创建' })
     return NextResponse.json({ installed: false, has_admin: false, checks })
@@ -69,20 +77,21 @@ export async function GET() {
   checks.push({
     name: '数据库表完整性',
     status: 'ok',
-    message: settingsTableAvailable ? '核心表可访问' : '安装前不阻塞业务表检测，请继续完成初始化'
+    message: settingsTableAvailable ? '核心表可访问' : '安装时将自动初始化数据库结构'
   })
 
-  // 6. 安装状态
   let installed = false
-  try {
-    const { data } = await supabase
-      .from('system_settings')
-      .select('value')
-      .eq('key', 'installed')
-      .maybeSingle()
-    installed = data?.value === 'true'
-  } catch {
-    installed = false
+  if (settingsTableAvailable) {
+    try {
+      const { data } = await supabase
+        .from('system_settings')
+        .select('value')
+        .eq('key', 'installed')
+        .maybeSingle()
+      installed = data?.value === 'true'
+    } catch {
+      installed = false
+    }
   }
   checks.push({
     name: '安装状态',
@@ -90,14 +99,13 @@ export async function GET() {
     message: installed ? '系统已安装' : '尚未安装'
   })
 
-  // 6. 管理员账户
   let hasAdmin = false
   try {
-    const { count } = await supabase
+    const { count, error } = await supabase
       .from('store_users')
       .select('id', { count: 'exact', head: true })
       .eq('role', 'admin')
-    hasAdmin = (count ?? 0) > 0
+    hasAdmin = !error && (count ?? 0) > 0
   } catch {
     hasAdmin = false
   }

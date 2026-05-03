@@ -1,16 +1,23 @@
 import { afterEach, describe, expect, test, vi } from 'vitest'
 
 const originalEnv = { ...process.env }
+const validBody = {
+  admin_username: 'admin',
+  admin_email: 'admin@example.com',
+  admin_password: 'admin1234',
+  site_name: 'MXStore',
+  site_domain: 'https://example.com'
+}
 
 type MockOptions = {
-  missingTables?: boolean
   existingEmail?: string
+  installed?: boolean
+  profileError?: { message: string } | null
 }
 
 function createMockSupabase(options: MockOptions = {}) {
-  const missingTables = options.missingTables ?? false
   const existingEmail = options.existingEmail?.toLowerCase() ?? ''
-  const createUser = vi.fn()
+  const createUser = vi.fn().mockResolvedValue({ data: { user: { id: 'auth-created' } }, error: null })
   const updateUserById = vi.fn().mockResolvedValue({ data: null, error: null })
   const listUsers = vi.fn().mockResolvedValue({
     data: {
@@ -18,24 +25,7 @@ function createMockSupabase(options: MockOptions = {}) {
     },
     error: null
   })
-  const upsert = vi.fn().mockResolvedValue({ data: null, error: null })
-
-  const makeTableChain = (table: string) => {
-    const base = {
-      select: vi.fn(() => ({
-        limit: vi.fn().mockResolvedValue({ error: missingTables ? { message: `relation "${table}" does not exist` } : null }),
-        eq: vi.fn().mockReturnValue({
-          maybeSingle: vi.fn().mockResolvedValue({
-            data: null,
-            error: missingTables ? { message: `relation "${table}" does not exist` } : null
-          })
-        })
-      })),
-      upsert
-    }
-
-    return base
-  }
+  const tableUpserts: Record<string, ReturnType<typeof vi.fn>> = {}
 
   return {
     auth: {
@@ -45,15 +35,46 @@ function createMockSupabase(options: MockOptions = {}) {
         updateUserById
       }
     },
-    from: vi.fn((table: string) => makeTableChain(table))
+    from: vi.fn((table: string) => {
+      tableUpserts[table] ??= vi.fn().mockResolvedValue({
+        data: null,
+        error: table === 'store_users' ? options.profileError ?? null : null
+      })
+
+      return {
+        select: vi.fn(() => ({
+          eq: vi.fn().mockReturnValue({
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: table === 'system_settings' && options.installed ? { value: 'true' } : null,
+              error: null
+            })
+          })
+        })),
+        upsert: tableUpserts[table]
+      }
+    })
   }
 }
 
-async function runInstallWithMock(mockSupabase: ReturnType<typeof createMockSupabase>, body: Record<string, string>) {
+async function runInstallWithMock(
+  mockSupabase: ReturnType<typeof createMockSupabase>,
+  options: { dbUrl?: string; migrationError?: Error } = {}
+) {
   vi.resetModules()
   process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.supabase.co'
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-key'
+  if (options.dbUrl !== undefined) {
+    process.env.SUPABASE_DB_URL = options.dbUrl
+  } else {
+    process.env.SUPABASE_DB_URL = 'postgresql://user:pass@example.com:6543/postgres'
+  }
 
+  const applyInstallMigrations = vi.fn().mockResolvedValue({ applied: ['0001_schema.sql'], skipped: ['0002_atomic_deduction.sql', '0003_system_settings.sql'] })
+  if (options.migrationError) {
+    applyInstallMigrations.mockRejectedValue(options.migrationError)
+  }
+
+  vi.doMock('@/lib/install/migrations', () => ({ applyInstallMigrations }))
   vi.doMock('@/lib/supabase/admin', () => ({
     createAdminClient: () => mockSupabase
   }))
@@ -62,10 +83,10 @@ async function runInstallWithMock(mockSupabase: ReturnType<typeof createMockSupa
   const request = new Request('http://localhost/api/install/run', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
+    body: JSON.stringify(validBody)
   })
 
-  return POST(request as never)
+  return { response: await POST(request as never), applyInstallMigrations }
 }
 
 afterEach(() => {
@@ -75,31 +96,42 @@ afterEach(() => {
 })
 
 describe('install run', () => {
-  test('rejects installation before creating auth users when tables are missing', async () => {
-    const mockSupabase = createMockSupabase({ missingTables: true })
-    const response = await runInstallWithMock(mockSupabase, {
-      admin_username: 'admin',
-      admin_email: 'admin@example.com',
-      admin_password: 'admin1234',
-      site_name: 'MXStore',
-      site_domain: 'https://example.com'
-    })
+  test('requires SUPABASE_DB_URL before installing', async () => {
+    const mockSupabase = createMockSupabase()
+    const { response, applyInstallMigrations } = await runInstallWithMock(mockSupabase, { dbUrl: '' })
 
-    expect(response.status).toBe(409)
-    await expect(response.text()).resolves.toContain('数据库表尚未创建')
+    expect(response.status).toBe(500)
+    await expect(response.text()).resolves.toContain('缺少 SUPABASE_DB_URL')
+    expect(applyInstallMigrations).not.toHaveBeenCalled()
     expect(mockSupabase.auth.admin.createUser).not.toHaveBeenCalled()
-    expect(mockSupabase.auth.admin.updateUserById).not.toHaveBeenCalled()
+  })
+
+  test('applies migrations before creating an auth user', async () => {
+    const mockSupabase = createMockSupabase()
+    const { response, applyInstallMigrations } = await runInstallWithMock(mockSupabase)
+
+    expect(response.ok).toBe(true)
+    expect(applyInstallMigrations).toHaveBeenCalledBefore(mockSupabase.auth.admin.createUser)
+    expect(mockSupabase.auth.admin.createUser).toHaveBeenCalledWith({
+      email: 'admin@example.com',
+      password: 'admin1234',
+      email_confirm: true,
+      user_metadata: { name: 'admin' }
+    })
+  })
+
+  test('does not create an auth user when migrations fail', async () => {
+    const mockSupabase = createMockSupabase()
+    const { response } = await runInstallWithMock(mockSupabase, { migrationError: new Error('数据库初始化失败: bad sql') })
+
+    expect(response.status).toBe(500)
+    await expect(response.text()).resolves.toContain('数据库初始化失败')
+    expect(mockSupabase.auth.admin.createUser).not.toHaveBeenCalled()
   })
 
   test('reuses an existing auth user with the same email', async () => {
     const mockSupabase = createMockSupabase({ existingEmail: 'admin@example.com' })
-    const response = await runInstallWithMock(mockSupabase, {
-      admin_username: 'admin',
-      admin_email: 'admin@example.com',
-      admin_password: 'admin1234',
-      site_name: 'MXStore',
-      site_domain: 'https://example.com'
-    })
+    const { response } = await runInstallWithMock(mockSupabase)
 
     expect(response.ok).toBe(true)
     expect(mockSupabase.auth.admin.createUser).not.toHaveBeenCalled()
@@ -110,5 +142,24 @@ describe('install run', () => {
     })
     expect(mockSupabase.from).toHaveBeenCalledWith('store_users')
     expect(mockSupabase.from).toHaveBeenCalledWith('system_settings')
+  })
+
+  test('rejects repeat installation after migrations are available', async () => {
+    const mockSupabase = createMockSupabase({ installed: true })
+    const { response } = await runInstallWithMock(mockSupabase)
+
+    expect(response.status).toBe(409)
+    await expect(response.text()).resolves.toContain('系统已安装')
+    expect(mockSupabase.auth.admin.createUser).not.toHaveBeenCalled()
+  })
+
+  test('does not mark installed when admin profile creation fails', async () => {
+    const mockSupabase = createMockSupabase({ profileError: { message: 'profile failed' } })
+    const { response } = await runInstallWithMock(mockSupabase)
+
+    expect(response.status).toBe(500)
+    await expect(response.text()).resolves.toContain('设置管理员角色失败')
+    const upsertCalls = mockSupabase.from('system_settings').upsert.mock.calls
+    expect(upsertCalls).toHaveLength(0)
   })
 })

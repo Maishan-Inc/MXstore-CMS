@@ -50,13 +50,20 @@ function createMockSupabase(options: MockSupabaseOptions = {}) {
   }
 }
 
-async function getStatusWithSupabase(mockSupabase: ReturnType<typeof createMockSupabase>) {
+async function getStatusWithSupabase(
+  mockSupabase: ReturnType<typeof createMockSupabase>,
+  databaseCheck = { ok: true, message: '数据库初始化连接可用' }
+) {
   vi.resetModules()
   process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.supabase.co'
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-key'
+  process.env.SUPABASE_DB_URL = 'postgresql://user:pass@example.com:6543/postgres'
   delete process.env.NEXT_PUBLIC_APP_URL
   delete process.env.NEXT_PUBLIC_SITE_URL
 
+  vi.doMock('@/lib/install/database', () => ({
+    checkDatabaseConnection: vi.fn().mockResolvedValue(databaseCheck)
+  }))
   vi.doMock('@/lib/supabase/admin', () => ({
     createAdminClient: () => mockSupabase
   }))
@@ -82,6 +89,10 @@ describe('install status', () => {
       name: 'Supabase 连接',
       status: 'ok'
     }))
+    expect(data.checks).toContainEqual(expect.objectContaining({
+      name: '数据库初始化权限',
+      status: 'ok'
+    }))
     expect(data.checks).not.toContainEqual(expect.objectContaining({
       name: '环境变量'
     }))
@@ -95,6 +106,23 @@ describe('install status', () => {
     }))
     expect(data.checks).toContainEqual(expect.objectContaining({
       name: '管理员账户',
+      status: 'ok'
+    }))
+  })
+
+  test('reports missing database initializer without blocking the wizard', async () => {
+    const data = await getStatusWithSupabase(
+      createMockSupabase({ missingTables: true }),
+      { ok: false, message: '缺少 SUPABASE_DB_URL' }
+    )
+
+    expect(data.checks).toContainEqual(expect.objectContaining({
+      name: '数据库初始化权限',
+      status: 'warning'
+    }))
+    expect(JSON.stringify(data)).not.toContain('postgresql://')
+    expect(data.checks).toContainEqual(expect.objectContaining({
+      name: '数据库表完整性',
       status: 'ok'
     }))
   })

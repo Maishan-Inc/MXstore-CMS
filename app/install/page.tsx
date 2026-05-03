@@ -2,10 +2,12 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 
+type InstallCheck = { name: string; status: string; message: string }
+
 type InstallStatus = {
   installed: boolean
   has_admin: boolean
-  checks: Array<{ name: string; status: string; message: string }>
+  checks: InstallCheck[]
 }
 
 const steps = [
@@ -25,7 +27,7 @@ export default function InstallPage() {
   const [statusMsg, setStatusMsg] = useState('正在检测安装状态...')
   const [toastVisible, setToastVisible] = useState(false)
   const [toastTone, setToastTone] = useState<'info' | 'success' | 'warning'>('info')
-  const [envChecks, setEnvChecks] = useState<Array<{ name: string; status: string; message: string }>>([])
+  const [envChecks, setEnvChecks] = useState<InstallCheck[]>([])
   const [installResult, setInstallResult] = useState<{ ok: boolean; message: string } | null>(null)
 
   const [form, setForm] = useState({
@@ -89,7 +91,7 @@ export default function InstallPage() {
       if (!res.ok) throw new Error(await res.text())
       const data = await res.json()
       setInstallResult(data)
-      showToast('初始化数据执行完成。', 'success')
+      showToast('数据库与管理员初始化完成。', 'success')
       await checkStatus()
       setStepIndex(3)
     } catch (err) {
@@ -125,6 +127,9 @@ export default function InstallPage() {
   }
 
   const progress = ((stepIndex + 1) / steps.length) * 100
+  const supabaseCheck = envChecks.find((item) => item.name === 'Supabase 连接')
+  const databaseCheck = envChecks.find((item) => item.name === '数据库初始化权限')
+  const schemaCheck = envChecks.find((item) => item.name === '数据库表完整性')
 
   return (
     <main className="install-page">
@@ -237,9 +242,9 @@ export default function InstallPage() {
                   <div className="install-section-body">
                     <div className="grid single">
                       <label>数据库类型<input value="Supabase Cloud" readOnly /></label>
-                      <label>连接状态<input value="通过环境变量自动连接" readOnly /></label>
-                      <label>Supabase URL<input value={process.env.NEXT_PUBLIC_SUPABASE_URL ? '已配置' : '未配置'} readOnly /></label>
-                      <label>Service Role Key<input value={process.env.SUPABASE_SERVICE_ROLE_KEY ? '已配置' : '未配置'} type="password" readOnly /></label>
+                      <label>Supabase API<input value={supabaseCheck?.message ?? '等待检测'} readOnly /></label>
+                      <label>数据库初始化权限<input value={databaseCheck?.message ?? '等待检测'} readOnly /></label>
+                      <label>初始化方式<input value={schemaCheck?.message ?? '最终确认时自动执行迁移'} readOnly /></label>
                     </div>
                   </div>
                   <aside className="install-side-actions">
@@ -278,9 +283,9 @@ export default function InstallPage() {
                   {!installed ? (
                     <div className="command-box">
                       {[
-                        { text: `mxstore env:check --supabase=${process.env.NEXT_PUBLIC_SUPABASE_URL ? 'ok' : 'pending'}`, done: true },
-                        { text: `mxstore migrate --apply`, done: true },
-                        { text: `mxstore admin:create --user="${form.admin_username}" --email="${form.admin_email}"`, done: !!installResult },
+                        { text: `mxstore env:check --supabase=${supabaseCheck?.status === 'ok' ? 'ok' : 'pending'}`, done: !installing },
+                        { text: 'mxstore migrate --apply', done: !!installResult },
+                        { text: `mxstore admin:reuse-or-create --user="${form.admin_username}" --email="${form.admin_email}"`, done: !!installResult },
                         { text: `mxstore settings:init --site="${form.site_name}" --domain="${form.site_domain}"`, done: !!installResult },
                         { text: installed ? 'mxstore install:lock --status=installed' : 'mxstore install:lock --status=pending', done: installed }
                       ].map((line, i) => (
@@ -317,7 +322,7 @@ export default function InstallPage() {
                   <button type="button" className="btn-primary" disabled={!canNext} onClick={nextStep}>下一步</button>
                 ) : !installed ? (
                   <button type="button" className="btn-primary" disabled={installing || installed} onClick={() => { void runInstall() }}>
-                    {installing ? '安装中...' : '开始安装'}
+                    {installing ? '正在初始化数据库并创建管理员...' : '开始安装'}
                   </button>
                 ) : null}
               </div>

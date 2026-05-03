@@ -164,59 +164,70 @@ alter table public.traffic_packages enable row level security;
 alter table public.payments enable row level security;
 alter table public.user_traffic_ledger enable row level security;
 
+drop policy if exists "users can read own profile" on public.store_users;
 create policy "users can read own profile"
 on public.store_users for select
 to authenticated
 using (auth_user_id = auth.uid() or public.is_admin());
 
+drop policy if exists "public can read published apps" on public.apps;
 create policy "public can read published apps"
 on public.apps for select
 to anon, authenticated
 using (published = true or public.is_admin());
 
+drop policy if exists "public can read published app links" on public.app_links;
 create policy "public can read published app links"
 on public.app_links for select
 to anon, authenticated
 using (exists (select 1 from public.apps a where a.id = app_id and a.published = true) or public.is_admin());
 
+drop policy if exists "public can read enabled packages" on public.traffic_packages;
 create policy "public can read enabled packages"
 on public.traffic_packages for select
 to anon, authenticated
 using (enabled = true or public.is_admin());
 
+drop policy if exists "admins manage token domains" on public.token_domains;
 create policy "admins manage token domains"
 on public.token_domains for all
 to authenticated
 using (public.is_admin())
 with check (public.is_admin());
 
+drop policy if exists "admins manage apps" on public.apps;
 create policy "admins manage apps"
 on public.apps for all
 to authenticated
 using (public.is_admin())
 with check (public.is_admin());
 
+drop policy if exists "admins manage app links" on public.app_links;
 create policy "admins manage app links"
 on public.app_links for all
 to authenticated
 using (public.is_admin())
 with check (public.is_admin());
 
+drop policy if exists "users read own entitlements" on public.app_entitlements;
 create policy "users read own entitlements"
 on public.app_entitlements for select
 to authenticated
 using (exists (select 1 from public.store_users u where u.auth_user_id = auth.uid() and u.id = user_id) or public.is_admin());
 
+drop policy if exists "users read own download sessions" on public.download_sessions;
 create policy "users read own download sessions"
 on public.download_sessions for select
 to authenticated
 using (exists (select 1 from public.store_users u where u.auth_user_id = auth.uid() and u.id = user_id) or public.is_admin());
 
+drop policy if exists "users read own payments" on public.payments;
 create policy "users read own payments"
 on public.payments for select
 to authenticated
 using (exists (select 1 from public.store_users u where u.auth_user_id = auth.uid() and u.id = user_id) or public.is_admin());
 
+drop policy if exists "users read own traffic ledger" on public.user_traffic_ledger;
 create policy "users read own traffic ledger"
 on public.user_traffic_ledger for select
 to authenticated

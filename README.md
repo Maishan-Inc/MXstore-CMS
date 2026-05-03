@@ -79,6 +79,7 @@
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase 项目 URL | 是 |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase Anon Key | 是 |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase Service Role Key | 是 |
+| `SUPABASE_DB_URL` | Supabase Postgres 连接字符串，用于一键初始化数据库；不要使用 `NEXT_PUBLIC_` 前缀 | 是 |
 | `APP_SECRET` | 加密密钥（任意随机字符串） | 是 |
 | `NEXT_PUBLIC_APP_URL` | 站点域名，如 `https://your-domain.com` | 否 |
 | `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | WalletConnect 项目 ID | 否 |
@@ -88,10 +89,10 @@
 
 部署完成后访问首页，自动跳转到安装向导：
 1. 阅读并同意安装协议
-2. 环境检测（Supabase 连接、Node/Next 版本、数据库表）
+2. 环境检测（Supabase 连接、数据库初始化权限、Node/Next 版本）
 3. 数据库连接确认
 4. 创建管理员账号
-5. 完成安装
+5. 点击开始安装，系统会自动执行数据库迁移、创建管理员并锁定安装状态
 
 ## 本地开发
 
@@ -117,6 +118,7 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
+SUPABASE_DB_URL=
 
 # 加密密钥
 APP_SECRET=
