@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import type { User } from '@supabase/supabase-js'
 import { z } from 'zod'
 
 const Schema = z.object({
@@ -16,64 +17,92 @@ export async function POST(request: NextRequest) {
 
   const { createAdminClient } = await import('@/lib/supabase/admin')
   const supabase = createAdminClient()
-
-  // Check if already installed
-  try {
-    const { data } = await supabase
-      .from('system_settings')
-      .select('value')
-      .eq('key', 'installed')
-      .maybeSingle()
-    if (data?.value === 'true') {
-      return new NextResponse('系统已安装，不能重复安装', { status: 409 })
-    }
-  } catch {
-    // Table might not exist - proceed
-  }
-
   const body = Schema.parse(await request.json())
 
-  // Create admin user via Supabase Auth
-  const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-    email: body.admin_email,
-    password: body.admin_password,
-    email_confirm: true,
-    user_metadata: { name: body.admin_username }
-  })
+  const { data: installedSettings, error: installedError } = await supabase
+    .from('system_settings')
+    .select('value')
+    .eq('key', 'installed')
+    .maybeSingle()
 
-  if (authError) {
-    return new NextResponse(`创建认证用户失败: ${authError.message}`, { status: 500 })
+  if (installedError && installedError.message !== 'relation "system_settings" does not exist') {
+    return new NextResponse(`读取安装状态失败: ${installedError.message}`, { status: 500 })
   }
 
-  // Wait for the trigger to create store_users record, then update role to admin
-  // The trigger handle_new_auth_user() will auto-create a store_users row
-  // We need to update it to admin role
-  if (authData.user) {
-    // Small delay for trigger to fire, then update role
-    await new Promise((resolve) => setTimeout(resolve, 500))
+  if (installedSettings?.value === 'true') {
+    return new NextResponse('系统已安装，不能重复安装', { status: 409 })
+  }
 
-    const { error: roleError } = await supabase
-      .from('store_users')
-      .update({ role: 'admin', display_name: body.admin_username })
-      .eq('auth_user_id', authData.user.id)
+  const { error: settingsTableError } = await supabase.from('system_settings').select('key').limit(1)
+  if (settingsTableError) {
+    return new NextResponse('数据库表尚未创建，请先执行迁移后再开始安装', { status: 409 })
+  }
 
-    if (roleError) {
-      // If trigger didn't fire yet, insert directly
-      const { error: insertError } = await supabase
-        .from('store_users')
-        .insert({
-          auth_user_id: authData.user.id,
-          email: body.admin_email,
-          display_name: body.admin_username,
-          role: 'admin'
-        })
-      if (insertError) {
-        return new NextResponse(`设置管理员角色失败: ${insertError.message}`, { status: 500 })
+  const { error: usersTableError } = await supabase.from('store_users').select('id').limit(1)
+  if (usersTableError) {
+    return new NextResponse('数据库表尚未创建，请先执行迁移后再开始安装', { status: 409 })
+  }
+
+  const { data: authUsers, error: listUsersError } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 })
+  if (listUsersError) {
+    return new NextResponse(`读取认证用户失败: ${listUsersError.message}`, { status: 500 })
+  }
+
+  const normalizedEmail = body.admin_email.toLowerCase()
+  const existingUser = authUsers.users.find((user: User) => user.email?.toLowerCase() === normalizedEmail)
+
+  let authUserId = existingUser?.id
+
+  if (!authUserId) {
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email: body.admin_email,
+      password: body.admin_password,
+      email_confirm: true,
+      user_metadata: { name: body.admin_username }
+    })
+
+    if (authError) {
+      if (!authError.message.toLowerCase().includes('already been registered')) {
+        return new NextResponse(`创建认证用户失败: ${authError.message}`, { status: 500 })
       }
+
+      const retryUsers = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 })
+      const retryUser = retryUsers.data.users.find((user: User) => user.email?.toLowerCase() === normalizedEmail)
+      if (!retryUser) {
+        return new NextResponse(`创建认证用户失败: ${authError.message}`, { status: 500 })
+      }
+      authUserId = retryUser.id
+    } else {
+      authUserId = authData.user?.id
     }
+  } else {
+    await supabase.auth.admin.updateUserById(authUserId, {
+      password: body.admin_password,
+      email_confirm: true,
+      user_metadata: { name: body.admin_username }
+    })
   }
 
-  // Mark as installed
+  if (!authUserId) {
+    return new NextResponse('无法获取管理员认证用户', { status: 500 })
+  }
+
+  const { error: profileError } = await supabase
+    .from('store_users')
+    .upsert(
+      {
+        auth_user_id: authUserId,
+        email: body.admin_email,
+        display_name: body.admin_username,
+        role: 'admin'
+      },
+      { onConflict: 'auth_user_id' }
+    )
+
+  if (profileError) {
+    return new NextResponse(`设置管理员角色失败: ${profileError.message}`, { status: 500 })
+  }
+
   const siteName = body.site_name || 'MXStore'
   const siteDomain = body.site_domain || ''
   const now = new Date().toISOString()
@@ -86,7 +115,10 @@ export async function POST(request: NextRequest) {
   ]
 
   for (const entry of settingsEntries) {
-    await supabase.from('system_settings').upsert(entry, { onConflict: 'key' })
+    const { error } = await supabase.from('system_settings').upsert(entry, { onConflict: 'key' })
+    if (error) {
+      return new NextResponse(`写入系统设置失败: ${error.message}`, { status: 500 })
+    }
   }
 
   return NextResponse.json({
