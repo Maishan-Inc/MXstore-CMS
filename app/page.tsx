@@ -1,21 +1,12 @@
-import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { AppCard } from '@/components/app-card'
 
 export const dynamic = 'force-dynamic'
 
 export default async function HomePage() {
-  // If Supabase env vars are missing, show install prompt
+  // If Supabase env vars are missing, redirect to install
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="max-w-md text-center">
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-600 text-2xl font-bold text-white">M</div>
-          <h1 className="text-2xl font-bold text-slate-900">欢迎使用 MXStore</h1>
-          <p className="mt-3 text-slate-500">请先在 Vercel 中配置 Supabase 环境变量，然后刷新此页面。</p>
-          <Link href="/install" className="mt-6 inline-block rounded-2xl bg-blue-600 px-8 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700">开始安装</Link>
-        </div>
-      </div>
-    )
+    redirect('/install')
   }
 
   const { createAdminClient } = await import('@/lib/supabase/admin')
@@ -33,22 +24,9 @@ export default async function HomePage() {
     installed = false
   }
 
+  // Not installed yet - redirect to install wizard
   if (!installed) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="max-w-md text-center">
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-600 text-2xl font-bold text-white">M</div>
-          <h1 className="text-2xl font-bold text-slate-900">欢迎使用 MXStore</h1>
-          <p className="mt-3 text-slate-500">系统尚未安装，请先完成安装向导以初始化数据库和创建管理员账号。</p>
-          <Link
-            href="/install"
-            className="mt-6 inline-block rounded-2xl bg-blue-600 px-8 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700"
-          >
-            开始安装
-          </Link>
-        </div>
-      </div>
-    )
+    redirect('/install')
   }
 
   const { data: apps, error } = await supabase

@@ -54,11 +54,11 @@ export default function InstallPage() {
       setInstalled(data.installed)
       setEnvChecks(data.checks)
       if (data.installed) {
-        showToast('系统已安装，安装接口已锁定，不能重复安装。', 'success')
-        setStepIndex(3)
-      } else {
-        showToast('系统尚未安装，请按步骤完成初始化。', 'info')
+        // Already installed - redirect to homepage, install page is locked
+        window.location.replace('/')
+        return
       }
+      showToast('系统尚未安装，请按步骤完成初始化。', 'info')
     } catch {
       showToast('安装状态检测失败', 'warning')
     } finally {
@@ -98,12 +98,12 @@ export default function InstallPage() {
     }
   }
 
-  function checkStatusLabel(value: string) {
-    return value === 'ok' ? '正常' : '提示'
-  }
+  const allChecksOk = envChecks.length > 0 && envChecks.every((c) => c.status === 'ok')
 
   const canNext = installed
     ? stepIndex < 3
+    : stepIndex === 0
+    ? allChecksOk
     : stepIndex === 1
     ? true
     : stepIndex === 2
@@ -115,14 +115,17 @@ export default function InstallPage() {
   }
 
   function prevStep() {
-    if (stepIndex > 0 && !installed) setStepIndex(stepIndex - 1)
+    if (stepIndex > 0 && !installed) {
+      setStepIndex(stepIndex - 1)
+    } else if (stepIndex === 0) {
+      setAgreementAccepted(false)
+    }
   }
 
   const progress = ((stepIndex + 1) / steps.length) * 100
 
   return (
     <main className="install-page">
-      {/* Toast */}
       {toastVisible && (
         <div className={`install-toast ${toastTone}`}>
           {statusMsg}
@@ -130,7 +133,6 @@ export default function InstallPage() {
       )}
 
       {!agreementAccepted ? (
-        /* Agreement */
         <section className="install-card install-hero install-agreement">
           <div className="agreement-logo">
             <span className="brand-logo">
@@ -176,9 +178,7 @@ export default function InstallPage() {
           </button>
         </section>
       ) : (
-        /* Wizard */
         <div className="install-shell">
-          {/* Step indicators outside card */}
           <div className="step-grid step-grid-outside">
             {steps.map((step, i) => (
               <button
@@ -194,60 +194,49 @@ export default function InstallPage() {
             ))}
           </div>
 
-          {/* Main card */}
           <section className="install-card install-hero install-wizard">
-            {/* Header with logo + badge */}
+            {/* Centered brand logo */}
             <div className="install-heading">
-              <div className="install-title-block">
-                <span className="brand-logo">
-                  <span>MX</span><span className="brand-logo-highlight">Store</span>
-                </span>
-              </div>
-              <div className="install-actions">
-                <div className={`install-badge ${installed ? 'success' : 'warning'}`}>
-                  {installed ? '已安装' : '待安装'}
-                </div>
-              </div>
+              <span className="brand-logo brand-logo-centered">
+                <img src="/logo.png" alt="" width={22} height={22} className="brand-logo-img" />
+                <span>MXStore</span>
+              </span>
             </div>
 
-            {/* Step content */}
             <div className="install-step-page">
               <div className="install-step-title">
                 <h2>{steps[stepIndex].title}</h2>
               </div>
 
-              {/* Step 0: Environment detection */}
               {stepIndex === 0 && (
-                <section className="install-section install-section-with-action">
-                  <div className="install-section-body">
-                    <div className="check-list">
-                      {envChecks.map((item) => (
-                        <div key={item.name} className="check-row">
-                          <span className={`tag ${item.status === 'ok' ? 'success' : 'info'}`}>{checkStatusLabel(item.status)}</span>
-                          <div><strong>{item.name}</strong><small>{item.message}</small></div>
-                        </div>
-                      ))}
-                      <div className="check-row">
-                        <span className="tag success">固定</span>
-                        <div><strong>数据库</strong><small>使用 Supabase Cloud 托管，通过环境变量配置连接。</small></div>
+                <section className="install-section">
+                  <div className="check-list">
+                    {envChecks.map((item) => (
+                      <div key={item.name} className="check-row">
+                        {item.status === 'ok' ? (
+                          <svg className="check-icon success" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                        ) : (
+                          <svg className="check-icon info" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path strokeLinecap="round" d="M12 8v4m0 4h.01" /></svg>
+                        )}
+                        <div><strong>{item.name}</strong><small>{item.message}</small></div>
                       </div>
-                      <div className="check-row">
-                        <span className="tag info">状态</span>
-                        <div><strong>安装状态</strong><small>以数据库中 system_settings.installed=true 为准。</small></div>
-                      </div>
+                    ))}
+                    <div className="check-row">
+                      <svg className="check-icon success" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                      <div><strong>数据库</strong><small>使用 Supabase Cloud 托管，通过环境变量配置连接。</small></div>
+                    </div>
+                    <div className="check-row">
+                      <svg className="check-icon info" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path strokeLinecap="round" d="M12 8v4m0 4h.01" /></svg>
+                      <div><strong>安装状态</strong><small>以数据库中 system_settings.installed=true 为准。</small></div>
                     </div>
                   </div>
-                  <aside className="install-side-actions">
-                    <button type="button" disabled={checking} onClick={checkStatus}>{checking ? '检测中...' : '重新检测'}</button>
-                  </aside>
                 </section>
               )}
 
-              {/* Step 1: Database connection */}
               {stepIndex === 1 && (
                 <section className="install-section install-section-with-action">
                   <div className="install-section-body">
-                    <div className="grid two">
+                    <div className="grid single">
                       <label>数据库类型<input value="Supabase Cloud" readOnly /></label>
                       <label>连接状态<input value="通过环境变量自动连接" readOnly /></label>
                       <label>Supabase URL<input value={process.env.NEXT_PUBLIC_SUPABASE_URL ? '已配置' : '未配置'} readOnly /></label>
@@ -260,42 +249,21 @@ export default function InstallPage() {
                 </section>
               )}
 
-              {/* Step 2: Admin account */}
               {stepIndex === 2 && (
                 <section className="install-section">
                   <form id="install-form" onSubmit={runInstall}>
-                    <div className="grid two">
+                    <div className="grid single">
                       <label>站点名称
-                        <input
-                          value={form.site_name}
-                          onChange={(e) => setForm({ ...form, site_name: e.target.value })}
-                          disabled={installed}
-                        />
+                        <input value={form.site_name} onChange={(e) => setForm({ ...form, site_name: e.target.value })} disabled={installed} />
                       </label>
                       <label>管理员
-                        <input
-                          value={form.admin_username}
-                          onChange={(e) => setForm({ ...form, admin_username: e.target.value })}
-                          disabled={installed}
-                        />
+                        <input value={form.admin_username} onChange={(e) => setForm({ ...form, admin_username: e.target.value })} disabled={installed} />
                       </label>
                       <label>邮箱
-                        <input
-                          type="email"
-                          value={form.admin_email}
-                          onChange={(e) => setForm({ ...form, admin_email: e.target.value })}
-                          disabled={installed}
-                          placeholder="admin@example.com"
-                        />
+                        <input type="email" value={form.admin_email} onChange={(e) => setForm({ ...form, admin_email: e.target.value })} disabled={installed} placeholder="admin@example.com" />
                       </label>
                       <label>密码
-                        <input
-                          type="password"
-                          value={form.admin_password}
-                          onChange={(e) => setForm({ ...form, admin_password: e.target.value })}
-                          disabled={installed}
-                          placeholder="至少 8 位"
-                        />
+                        <input type="password" value={form.admin_password} onChange={(e) => setForm({ ...form, admin_password: e.target.value })} disabled={installed} placeholder="至少 8 位" />
                       </label>
                     </div>
                     <p className="form-hint">密码至少 8 位。安装完成后可登录后台修改。</p>
@@ -303,7 +271,6 @@ export default function InstallPage() {
                 </section>
               )}
 
-              {/* Step 3: Confirm & Install */}
               {stepIndex === 3 && (
                 <section className={`install-section command-stage ${installed ? 'complete' : ''}`}>
                   {!installed ? (
@@ -339,17 +306,21 @@ export default function InstallPage() {
 
             {/* Navigation */}
             <div className="install-nav">
-              <button type="button" disabled={stepIndex === 0 || installed} onClick={prevStep}>上一步</button>
-              {stepIndex < 3 ? (
-                <button type="button" className="btn-primary" disabled={!canNext} onClick={nextStep}>下一步</button>
-              ) : !installed ? (
-                <button type="submit" form="install-form" className="btn-primary" disabled={installing || installed}>
-                  {installing ? '安装中...' : '开始安装'}
-                </button>
-              ) : null}
+              <button type="button" className="btn-outline" disabled={installed} onClick={prevStep}>上一步</button>
+              <div className="nav-right">
+                {stepIndex === 0 && (
+                  <button type="button" className="btn-outline" disabled={checking} onClick={checkStatus}>{checking ? '检测中...' : '重新检测'}</button>
+                )}
+                {stepIndex < 3 ? (
+                  <button type="button" className="btn-primary" disabled={!canNext} onClick={nextStep}>下一步</button>
+                ) : !installed ? (
+                  <button type="submit" form="install-form" className="btn-primary" disabled={installing || installed}>
+                    {installing ? '安装中...' : '开始安装'}
+                  </button>
+                ) : null}
+              </div>
             </div>
 
-            {/* Progress bar */}
             <div className="install-progress install-progress-bottom">
               <span style={{ width: `${progress}%` }} />
             </div>
@@ -388,10 +359,8 @@ export default function InstallPage() {
         .install-toast.warning { border-color: rgba(251,191,36,.45); color: #b45309; }
         .install-toast.success { border-color: #d1fae5; color: #047857; }
 
-        /* Shell */
         .install-shell { width: min(860px, 100%); }
 
-        /* Card */
         .install-card {
           border: 1px solid #e2e8f0;
           background: #ffffff;
@@ -434,12 +403,9 @@ export default function InstallPage() {
           font-size: 22px;
           font-weight: 700;
           letter-spacing: .04em;
-          margin-bottom: 16px;
         }
-        .brand-logo-img {
-          border-radius: 6px;
-          object-fit: contain;
-        }
+        .brand-logo-img { border-radius: 6px; object-fit: contain; }
+        .brand-logo-centered { justify-content: center; width: 100%; }
 
         /* Kicker */
         .kicker {
@@ -482,24 +448,11 @@ export default function InstallPage() {
         .install-hero { position: relative; overflow: hidden; }
         .install-heading {
           display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
-          gap: 24px;
+          align-items: center;
+          justify-content: center;
           position: relative;
           min-height: 42px;
         }
-        .install-title-block { min-width: 0; }
-        .install-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
-        .install-badge {
-          border-radius: 999px;
-          padding: 10px 14px;
-          border: 1px solid #e2e8f0;
-          color: #94a3b8;
-          font-size: 12px;
-          font-weight: 500;
-        }
-        .install-badge.success { color: #047857; background: #ecfdf5; border-color: #d1fae5; }
-        .install-badge.warning { color: #b45309; background: #fffbeb; border-color: #fde68a; }
 
         /* Step page */
         .install-step-page { margin-top: 24px; min-height: 382px; }
@@ -531,30 +484,20 @@ export default function InstallPage() {
         .check-row:last-child { border-bottom: 0; }
         .check-row strong { display: block; color: #0f172a; font-size: 14px; }
         .check-row small { display: block; color: #94a3b8; font-size: 12px; margin-top: 2px; }
-        .tag {
-          display: inline-block;
-          padding: 4px 10px;
-          border-radius: 6px;
-          font-size: 11px;
-          font-weight: 600;
-          letter-spacing: .04em;
-          text-transform: uppercase;
-          white-space: nowrap;
-          margin-top: 2px;
-        }
-        .tag.success { color: #047857; background: #ecfdf5; }
-        .tag.info { color: #0369a1; background: #f0f9ff; }
+        .check-icon { width: 20px; height: 20px; flex-shrink: 0; margin-top: 1px; }
+        .check-icon.success { color: #047857; }
+        .check-icon.info { color: #94a3b8; }
 
         /* Grid */
-        .grid.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
-        .grid.two label {
+        .grid.single { display: grid; grid-template-columns: 1fr; gap: 18px; }
+        .grid.single label {
           display: grid;
           gap: 6px;
           font-size: 13px;
           font-weight: 500;
           color: #475569;
         }
-        .grid.two input, .install-section input {
+        .grid.single input, .install-section input {
           padding: 10px 14px;
           border: 1px solid #e2e8f0;
           border-radius: 10px;
@@ -564,7 +507,7 @@ export default function InstallPage() {
           outline: none;
           transition: border-color .2s;
         }
-        .grid-two input:focus, .install-section input:focus { border-color: #3b82f6; }
+        .grid.single input:focus, .install-section input:focus { border-color: #3b82f6; }
         input[readonly] { color: #94a3b8; border-color: #f1f5f9; background: #f8fafc; }
         .form-hint { color: #94a3b8; font-size: 12px; margin-top: 12px; }
 
@@ -630,12 +573,7 @@ export default function InstallPage() {
         .button-link:hover { background: #1e293b; }
 
         /* Fireworks */
-        .fireworks {
-          position: relative;
-          width: 120px;
-          height: 120px;
-          margin: 0 auto 24px;
-        }
+        .fireworks { position: relative; width: 120px; height: 120px; margin: 0 auto 24px; }
         .fireworks span {
           position: absolute;
           top: 50%;
@@ -652,7 +590,7 @@ export default function InstallPage() {
           background: #0f172a;
           border: 1px solid #0f172a;
           color: #ffffff;
-          padding: 9px 14px;
+          padding: 9px 18px;
           border-radius: 8px;
           cursor: pointer;
           font-size: 14px;
@@ -662,7 +600,20 @@ export default function InstallPage() {
         .btn-primary:hover { background: #1e293b; }
         .btn-primary:disabled { opacity: .4; cursor: default; }
 
-        .install-section button:not(.btn-primary),
+        .btn-outline {
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          color: #475569;
+          padding: 9px 18px;
+          border-radius: 8px;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 500;
+          transition: all .2s;
+        }
+        .btn-outline:hover { background: #f8fafc; border-color: #cbd5e1; }
+        .btn-outline:disabled { opacity: .4; cursor: default; }
+
         .install-side-actions button {
           background: #ffffff;
           border: 1px solid #e2e8f0;
@@ -673,13 +624,19 @@ export default function InstallPage() {
           font-size: 14px;
           transition: all .2s;
         }
-        .install-section button:not(.btn-primary):hover,
         .install-side-actions button:hover { background: #f8fafc; }
-        .install-section button:not(.btn-primary):disabled,
         .install-side-actions button:disabled { opacity: .4; cursor: default; }
 
         /* Nav */
-        .install-nav { display: flex; justify-content: space-between; gap: 12px; margin-top: 18px; }
+        .install-nav {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 16px;
+          margin-top: 18px;
+          padding: 0 8px;
+        }
+        .nav-right { display: flex; gap: 10px; align-items: center; }
 
         /* Progress */
         .install-progress {
@@ -711,27 +668,21 @@ export default function InstallPage() {
           right: 20px;
           bottom: 14px;
           font-size: 11px;
-          color: #cbd5e1;
+          color: #000000;
           text-align: center;
           pointer-events: none;
         }
 
         /* Wizard */
-        .install-wizard { padding-bottom: 54px; }
+        .install-wizard { padding: 32px 40px 54px; }
 
         /* Animations */
-        @keyframes caret {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0; }
-        }
+        @keyframes caret { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
         @keyframes firework {
           0% { transform: translate(-50%, -50%) rotate(calc(var(--i) * 20deg)) translateY(0); opacity: 1; }
           100% { transform: translate(-50%, -50%) rotate(calc(var(--i) * 20deg)) translateY(-60px); opacity: 0; }
         }
-        @keyframes toastIn {
-          from { opacity: 0; transform: translateX(-28px); }
-          to { opacity: 1; transform: translateX(0); }
-        }
+        @keyframes toastIn { from { opacity: 0; transform: translateX(-28px); } to { opacity: 1; transform: translateX(0); } }
       `}</style>
     </main>
   )
