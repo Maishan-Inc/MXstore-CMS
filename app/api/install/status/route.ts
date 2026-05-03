@@ -5,15 +5,25 @@ export const dynamic = 'force-dynamic'
 export async function GET() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  const supabaseOk = !!supabaseUrl && !!supabaseKey
+  const supabaseConfigured = !!supabaseUrl && !!supabaseKey
 
   const checks: Array<{ name: string; status: string; message: string }> = []
+  let supabase: Awaited<ReturnType<typeof import('@/lib/supabase/admin')['createAdminClient']>> | null = null
+  let supabaseOk = false
 
   // 1. Supabase 连接
-  if (!supabaseOk) {
+  if (!supabaseConfigured) {
     checks.push({ name: 'Supabase 连接', status: 'error', message: '缺少 NEXT_PUBLIC_SUPABASE_URL 或 SUPABASE_SERVICE_ROLE_KEY' })
   } else {
-    checks.push({ name: 'Supabase 连接', status: 'ok', message: '环境变量已配置' })
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    supabase = createAdminClient()
+    const { error } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1 })
+    supabaseOk = !error
+    checks.push({
+      name: 'Supabase 连接',
+      status: supabaseOk ? 'ok' : 'error',
+      message: supabaseOk ? '连接成功' : `连接失败: ${error?.message ?? '未知错误'}`
+    })
   }
 
   // 2. 环境变量
@@ -50,29 +60,24 @@ export async function GET() {
     message: `v${nextVersion}`
   })
 
-  // If Supabase not configured, return early
-  if (!supabaseOk) {
-    checks.push({ name: '数据库表完整性', status: 'warning', message: '等待 Supabase 配置后自动检测' })
+  if (!supabaseOk || !supabase) {
+    checks.push({ name: '数据库表完整性', status: 'warning', message: '等待 Supabase 连接成功后检测' })
     checks.push({ name: '安装状态', status: 'warning', message: '尚未检测' })
     checks.push({ name: '管理员账户', status: 'warning', message: '尚未创建' })
     return NextResponse.json({ installed: false, has_admin: false, checks })
   }
 
-  const { createAdminClient } = await import('@/lib/supabase/admin')
-  const supabase = createAdminClient()
-
-  // 5. 数据库表完整性 - non-blocking, tables may not exist yet before install
-  let dbOk = false
+  let settingsTableAvailable = false
   try {
     const { error } = await supabase.from('system_settings').select('key').limit(1)
-    dbOk = !error
+    settingsTableAvailable = !error
   } catch {
-    dbOk = false
+    settingsTableAvailable = false
   }
   checks.push({
     name: '数据库表完整性',
-    status: dbOk ? 'ok' : 'warning',
-    message: dbOk ? '核心表可访问' : '表尚未创建，安装过程中将自动初始化'
+    status: 'ok',
+    message: settingsTableAvailable ? '核心表可访问' : '安装前不阻塞业务表检测，请继续完成初始化'
   })
 
   // 6. 安装状态
