@@ -24,6 +24,7 @@ describe('admin app helpers', () => {
           name: '主下载',
           input_url: '',
           file_size_bytes: '',
+          file_size_unit: 'GB',
           charge_traffic: true,
           sort_order: 0
         }
@@ -75,7 +76,8 @@ describe('admin app helpers', () => {
           id: 'link-1',
           name: 'Windows 包',
           input_url: 'https://example.com/file.zip',
-          file_size_bytes: '2048',
+          file_size_bytes: '0.002',
+          file_size_unit: 'MB',
           charge_traffic: false,
           sort_order: 3
         }

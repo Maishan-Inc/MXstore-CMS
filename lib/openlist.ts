@@ -57,6 +57,10 @@ export async function findTokenDomainByUrl(inputUrl: string): Promise<TokenDomai
 }
 
 export async function makeSignedDownloadUrl(inputUrl: string) {
+  return makeSignedOpenListUrl(inputUrl)
+}
+
+export async function makeSignedOpenListUrl(inputUrl: string) {
   const domain = await findTokenDomainByUrl(inputUrl)
   if (!domain) return { kind: 'external' as const, url: inputUrl, openlistPath: null, expiresAt: null }
 
@@ -67,4 +71,13 @@ export async function makeSignedDownloadUrl(inputUrl: string) {
   const url = `${base}/d${encodePathBySegment(openlistPath)}?sign=${encodeURIComponent(sign)}`
   const expiresAt = domain.sign_ttl_seconds === 0 ? null : new Date(Date.now() + domain.sign_ttl_seconds * 1000)
   return { kind: 'openlist' as const, url, openlistPath, expiresAt }
+}
+
+export async function resolveSignedOpenListUrl(inputUrl: string | null | undefined) {
+  if (!inputUrl) return null
+  try {
+    return (await makeSignedOpenListUrl(inputUrl)).url
+  } catch {
+    return inputUrl
+  }
 }

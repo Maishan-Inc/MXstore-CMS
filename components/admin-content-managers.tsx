@@ -24,6 +24,7 @@ import {
   X,
   type LucideIcon
 } from 'lucide-react'
+import { signedImageSrc } from '@/lib/openlist-image'
 
 const iconLibrary: Record<string, LucideIcon> = {
   Bot,
@@ -221,7 +222,7 @@ export function BannerManager({ initialItems }: { initialItems: BannerItem[] }) 
         {items.map((item, index) => (
           <div key={item.id ?? index} className="card grid gap-4 lg:grid-cols-[160px_1fr_auto]">
             <div className="flex h-28 items-center justify-center overflow-hidden rounded-xl bg-slate-100 text-slate-400">
-              {item.image_url ? <img src={item.image_url} alt="" className="h-full w-full object-cover" /> : <Image className="h-8 w-8" />}
+              {item.image_url ? <img src={signedImageSrc(item.image_url) ?? item.image_url} alt="" className="h-full w-full object-cover" /> : <Image className="h-8 w-8" />}
             </div>
             <div className="grid gap-3 md:grid-cols-2">
               <input className="input" value={item.title} onChange={(e) => setItems((current) => current.map((entry, i) => i === index ? { ...entry, title: e.target.value } : entry))} />
@@ -304,7 +305,7 @@ export function LoginProviderManager({ initialItems }: { initialItems: LoginProv
                 <tr key={item.id}>
                   <td className="px-5 py-4">
                     <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-slate-100">
-                      {item.icon_url ? <img src={item.icon_url} alt="" className="h-full w-full object-cover" /> : <KeyRound className="h-5 w-5 text-slate-500" />}
+                      {item.icon_url ? <img src={signedImageSrc(item.icon_url) ?? item.icon_url} alt="" className="h-full w-full object-cover" /> : <KeyRound className="h-5 w-5 text-slate-500" />}
                     </div>
                   </td>
                   <td className="px-5 py-4">
@@ -409,7 +410,7 @@ export function LoginProviderManager({ initialItems }: { initialItems: LoginProv
               {draft.icon_url ? (
                 <div className="flex items-center gap-3">
                   <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl bg-slate-100">
-                    <img src={draft.icon_url} alt="" className="h-full w-full object-cover" />
+                    <img src={signedImageSrc(draft.icon_url) ?? draft.icon_url} alt="" className="h-full w-full object-cover" />
                   </div>
                   <span className="text-sm text-slate-500">图标预览</span>
                 </div>

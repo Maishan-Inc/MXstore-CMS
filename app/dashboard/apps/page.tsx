@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { getCurrentStoreUser } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { formatMoney } from '@/lib/format'
+import { signedImageSrc } from '@/lib/openlist-image'
 
 export default async function DashboardAppsPage() {
   const user = await getCurrentStoreUser()
@@ -30,7 +31,7 @@ export default async function DashboardAppsPage() {
             <Link key={item.id} href={`/app/${appRecord.slug}`} className="card hover:border-blue-200">
               <div className="flex gap-4">
                 <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-xl font-semibold text-slate-700">
-                  {appRecord.logo_url ? <img src={appRecord.logo_url} alt="" className="h-full w-full rounded-2xl object-cover" /> : appRecord.name.slice(0, 1)}
+                  {appRecord.logo_url ? <img src={signedImageSrc(appRecord.logo_url) ?? appRecord.logo_url} alt="" className="h-full w-full rounded-2xl object-cover" /> : appRecord.name.slice(0, 1)}
                 </div>
                 <div>
                   <h3 className="font-semibold text-slate-900">{appRecord.name}</h3>

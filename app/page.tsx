@@ -19,6 +19,7 @@ import {
   Zap
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { signedImageSrc } from '@/lib/openlist-image'
 
 export const dynamic = 'force-dynamic'
 
@@ -108,7 +109,7 @@ function FeaturedAppCard({ app }: { app: DisplayApp }) {
     >
       <div className={`flex h-16 w-16 items-center justify-center rounded-[18px] bg-gradient-to-br ${app.tone} shadow-[0_10px_22px_rgb(37_99_235_/_0.18)]`}>
         {app.logo_url ? (
-          <img src={app.logo_url} alt="" className="h-full w-full rounded-[18px] object-cover" />
+          <img src={signedImageSrc(app.logo_url) ?? app.logo_url} alt="" className="h-full w-full rounded-[18px] object-cover" />
         ) : (
           <Icon className="h-9 w-9 text-white" strokeWidth={2.4} />
         )}
@@ -307,7 +308,7 @@ export default async function HomePage() {
 
             {primaryBanner.image_url ? (
               <div className="absolute inset-y-0 right-0 hidden w-[54%] items-center justify-center p-12 md:flex">
-                <img src={primaryBanner.image_url} alt="" className="max-h-[460px] rounded-[28px] object-cover shadow-[0_30px_70px_rgb(37_99_235_/_0.22)]" />
+                <img src={signedImageSrc(primaryBanner.image_url) ?? primaryBanner.image_url} alt="" className="max-h-[460px] rounded-[28px] object-cover shadow-[0_30px_70px_rgb(37_99_235_/_0.22)]" />
               </div>
             ) : (
               <HeroVisual />

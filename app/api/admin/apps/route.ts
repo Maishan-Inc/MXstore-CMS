@@ -9,7 +9,7 @@ const LinkSchema = z.object({
   id: z.string().uuid().nullable().optional(),
   name: z.string().min(1),
   input_url: z.string().url(),
-  file_size_bytes: z.number().int().positive().nullable().optional(),
+  file_size_bytes: z.number().int().nonnegative().nullable().optional(),
   charge_traffic: z.boolean().default(true),
   sort_order: z.number().int().default(0)
 })
@@ -43,7 +43,7 @@ async function buildLinks(appId: string, links: z.infer<typeof LinkSchema>[]) {
         input_url: link.input_url,
         link_kind: matchedDomain ? 'openlist' : 'external',
         token_domain_id: matchedDomain?.id ?? null,
-        file_size_bytes: link.file_size_bytes ?? null,
+        file_size_bytes: link.file_size_bytes && link.file_size_bytes > 0 ? link.file_size_bytes : null,
         charge_traffic: link.charge_traffic,
         sort_order: link.sort_order
       }

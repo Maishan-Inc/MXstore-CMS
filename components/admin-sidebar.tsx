@@ -36,8 +36,8 @@ function isActivePath(pathname: string, href: string) {
 
 export function AdminSidebar({ pathname }: { pathname: string }) {
   return (
-    <aside className="shrink-0 border-slate-200 bg-white lg:min-h-screen lg:w-[284px] lg:border-r">
-      <div className="flex h-full flex-col px-5 py-8">
+    <aside className="shrink-0 border-slate-200 bg-white lg:sticky lg:top-0 lg:h-screen lg:w-[284px] lg:self-start lg:border-r">
+      <div className="flex h-full flex-col overflow-y-auto px-5 py-8">
         <Link href="/admin" className="mb-10 flex items-center gap-2 text-slate-950">
           <span className="text-2xl font-semibold tracking-tight">MXStore</span>
           <span className="text-lg font-semibold">管理后台</span>

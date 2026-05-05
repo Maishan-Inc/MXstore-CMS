@@ -3,9 +3,12 @@ export type AdminAppLinkInput = {
   name: string
   input_url: string
   file_size_bytes: string
+  file_size_unit: FileSizeUnit
   charge_traffic: boolean
   sort_order: number
 }
+
+export type FileSizeUnit = 'MB' | 'GB'
 
 export type AdminAppFormValues = {
   name: string
@@ -68,13 +71,14 @@ export function appFormDefaults(): AdminAppFormValues {
     published: true,
     links: [
       {
-        id: null,
-        name: '主下载',
-        input_url: '',
-        file_size_bytes: '',
-        charge_traffic: true,
-        sort_order: 0
-      }
+            id: null,
+            name: '主下载',
+            input_url: '',
+            file_size_bytes: '',
+            file_size_unit: 'GB',
+            charge_traffic: true,
+            sort_order: 0
+          }
     ]
   }
 }
@@ -103,10 +107,29 @@ export function normalizeAppPayload(app: ExistingApp): AdminAppFormValues {
             id: link.id,
             name: link.name,
             input_url: link.input_url,
-            file_size_bytes: link.file_size_bytes ? String(link.file_size_bytes) : '',
+            ...formatFileSizeForInput(link.file_size_bytes),
             charge_traffic: link.charge_traffic,
             sort_order: link.sort_order
           }))
       : appFormDefaults().links
   }
+}
+
+export function fileSizeInputToBytes(value: string, unit: FileSizeUnit) {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed) || parsed <= 0) return null
+  const multiplier = unit === 'GB' ? 1024 ** 3 : 1024 ** 2
+  return Math.round(parsed * multiplier)
+}
+
+export function formatFileSizeForInput(bytes: number | null): Pick<AdminAppLinkInput, 'file_size_bytes' | 'file_size_unit'> {
+  if (!bytes || bytes <= 0) return { file_size_bytes: '', file_size_unit: 'GB' }
+  if (bytes >= 1024 ** 3) {
+    return { file_size_bytes: trimFileSize(bytes / 1024 ** 3), file_size_unit: 'GB' }
+  }
+  return { file_size_bytes: trimFileSize(bytes / 1024 ** 2, 4), file_size_unit: 'MB' }
+}
+
+function trimFileSize(value: number, digits = 2) {
+  return value.toFixed(digits).replace(/\.?0+$/, '')
 }

@@ -6,6 +6,7 @@ import { getCurrentStoreUser } from '@/lib/auth'
 import { DownloadButton } from '@/components/download-button'
 import { AppPurchaseButton } from '@/components/app-purchase-button'
 import { formatBytes, formatMoney } from '@/lib/format'
+import { signedImageSrc } from '@/lib/openlist-image'
 
 type DownloadPermission = 'public' | 'login' | 'purchase'
 
@@ -32,6 +33,8 @@ export default async function AppDetailPage({ params }: { params: Promise<{ slug
   const permission = (app.download_permission ?? (app.is_paid ? 'purchase' : 'login')) as DownloadPermission
   const permissionInfo = permissionCopy(permission)
   const PermissionIcon = permissionInfo.icon
+  const logoSrc = signedImageSrc(app.logo_url)
+  const developerAvatarSrc = signedImageSrc(app.developer_avatar_url)
 
   const currentUser = await getCurrentStoreUser()
   let hasEntitlement = false
@@ -49,14 +52,14 @@ export default async function AppDetailPage({ params }: { params: Promise<{ slug
 
   return (
     <div className="mx-auto max-w-7xl space-y-8">
-      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
-        <div className="grid gap-8 p-8 lg:grid-cols-[1fr_360px] lg:p-10">
-          <div className="flex gap-6">
+      <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+        <div className="grid gap-8 p-6 md:p-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:p-10">
+          <div className="flex flex-col items-center gap-6 text-center sm:flex-row sm:items-start sm:text-left">
             <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-4xl font-semibold text-blue-600">
-              {app.logo_url ? <img src={app.logo_url} alt="" className="h-full w-full rounded-2xl object-cover" /> : app.name.slice(0, 1)}
+              {logoSrc ? <img src={logoSrc} alt="" className="h-full w-full rounded-2xl object-cover" /> : app.name.slice(0, 1)}
             </div>
             <div className="min-w-0">
-              <div className="mb-4 flex flex-wrap gap-2">
+              <div className="mb-4 flex flex-wrap justify-center gap-2 sm:justify-start">
                 <span className="inline-flex items-center gap-1.5 rounded-md bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
                   <Tag className="h-3.5 w-3.5" />
                   {category?.name ?? app.platform ?? '未分类'}
@@ -67,9 +70,9 @@ export default async function AppDetailPage({ params }: { params: Promise<{ slug
                 </span>
               </div>
               <h1 className="text-4xl font-semibold tracking-tight text-slate-950">{app.name}</h1>
-              <div className="mt-4 flex items-center gap-3">
+              <div className="mt-4 flex items-center justify-center gap-3 sm:justify-start">
                 <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-slate-100 text-sm font-semibold text-slate-700">
-                  {app.developer_avatar_url ? <img src={app.developer_avatar_url} alt="" className="h-full w-full object-cover" /> : (app.developer_name ?? app.name).slice(0, 1)}
+                  {developerAvatarSrc ? <img src={developerAvatarSrc} alt="" className="h-full w-full object-cover" /> : (app.developer_name ?? app.name).slice(0, 1)}
                 </div>
                 <div>
                   <p className="text-sm font-medium text-slate-900">{app.developer_name ?? '开发者'}</p>

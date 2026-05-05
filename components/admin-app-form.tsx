@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { appFormDefaults, type AdminAppFormValues, type AdminAppLinkInput } from '@/lib/admin/apps'
+import { appFormDefaults, fileSizeInputToBytes, type AdminAppFormValues, type AdminAppLinkInput } from '@/lib/admin/apps'
 
 type AdminAppFormProps = {
   mode?: 'create' | 'edit'
@@ -18,6 +18,7 @@ function makeNewLink(index: number): AdminAppLinkInput {
     name: `下载 ${index + 1}`,
     input_url: '',
     file_size_bytes: '',
+    file_size_unit: 'GB',
     charge_traffic: true,
     sort_order: index
   }
@@ -60,7 +61,7 @@ export function AdminAppForm({ mode = 'create', appId, initialValues, categories
         id: link.id,
         name: link.name || `下载 ${index + 1}`,
         input_url: link.input_url,
-        file_size_bytes: link.file_size_bytes ? Number(link.file_size_bytes) : null,
+        file_size_bytes: fileSizeInputToBytes(link.file_size_bytes, link.file_size_unit),
         charge_traffic: link.charge_traffic,
         sort_order: index
       }))
@@ -114,6 +115,7 @@ export function AdminAppForm({ mode = 'create', appId, initialValues, categories
         <label>
           <span className="label">Logo URL</span>
           <input name="logo_url" defaultValue={defaults.logo_url} className="input" placeholder="https://..." />
+          <span className="mt-2 block text-xs text-slate-500">支持 OpenList 签名图片链接，系统保存后会自动按域名生成临时访问地址。</span>
         </label>
         <label>
           <span className="label">开发者名称</span>
@@ -122,6 +124,7 @@ export function AdminAppForm({ mode = 'create', appId, initialValues, categories
         <label>
           <span className="label">开发者头像 URL</span>
           <input name="developer_avatar_url" defaultValue={defaults.developer_avatar_url} className="input" placeholder="https://..." />
+          <span className="mt-2 block text-xs text-slate-500">同样支持 OpenList 图片签名地址。</span>
         </label>
         <label>
           <span className="label">货币</span>
@@ -149,13 +152,13 @@ export function AdminAppForm({ mode = 'create', appId, initialValues, categories
       </div>
 
       <div className="card space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900">下载链接</h2>
-            <p className="mt-1 text-sm text-slate-500">支持 OpenList /p 链接与外部官网链接，系统会自动识别并匹配 Token。</p>
-          </div>
-          <button type="button" onClick={() => setLinks((value) => [...value, makeNewLink(value.length)])} className="btn-secondary">
-            添加链接
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">下载链接</h2>
+              <p className="mt-1 text-sm text-slate-500">支持 OpenList /p 链接与外部官网链接，系统会自动识别并匹配 Token。</p>
+            </div>
+            <button type="button" onClick={() => setLinks((value) => [...value, makeNewLink(value.length)])} className="btn-secondary">
+              添加链接
           </button>
         </div>
         {links.map((link, index) => (
@@ -168,9 +171,15 @@ export function AdminAppForm({ mode = 'create', appId, initialValues, categories
               <span className="label">URL</span>
               <input className="input" value={link.input_url} onChange={(e) => updateLink(index, { input_url: e.target.value })} required />
             </label>
-            <label>
-              <span className="label">文件大小 bytes</span>
-              <input className="input" type="number" value={link.file_size_bytes} onChange={(e) => updateLink(index, { file_size_bytes: e.target.value })} />
+            <label className="flex flex-col">
+              <span className="label">文件大小</span>
+              <div className="grid grid-cols-[minmax(0,1fr)_92px] gap-2">
+                <input className="input" type="number" step="0.01" min="0" value={link.file_size_bytes} onChange={(e) => updateLink(index, { file_size_bytes: e.target.value })} />
+                <select className="input" value={link.file_size_unit} onChange={(e) => updateLink(index, { file_size_unit: e.target.value as AdminAppLinkInput['file_size_unit'] })}>
+                  <option value="MB">MB</option>
+                  <option value="GB">GB</option>
+                </select>
+              </div>
             </label>
             <label className="flex items-center gap-2 text-sm text-slate-600">
               <input type="checkbox" checked={link.charge_traffic} onChange={(e) => updateLink(index, { charge_traffic: e.target.checked })} /> 扣用户流量
@@ -186,9 +195,11 @@ export function AdminAppForm({ mode = 'create', appId, initialValues, categories
       </div>
 
       {error ? <p className="text-sm text-red-500">{error}</p> : null}
-      <button disabled={loading} className="btn">
-        {loading ? (mode === 'create' ? '创建中...' : '保存中...') : mode === 'create' ? '创建应用' : '保存应用'}
-      </button>
+      <div className="flex justify-center">
+        <button disabled={loading} className="btn min-w-44">
+          {loading ? (mode === 'create' ? '创建中...' : '保存中...') : mode === 'create' ? '创建应用' : '保存应用'}
+        </button>
+      </div>
     </form>
   )
 }
