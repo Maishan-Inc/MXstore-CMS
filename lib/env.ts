@@ -6,6 +6,6 @@ export function requiredEnv(name: string): string {
   return value
 }
 
-export function appUrl(): string {
-  return process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+export function appUrl(origin?: string): string {
+  return process.env.NEXT_PUBLIC_SITE_URL ?? origin ?? 'http://localhost:3000'
 }

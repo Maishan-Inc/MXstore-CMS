@@ -58,5 +58,5 @@ export async function GET(request: NextRequest) {
       }
     }
   }
-  return NextResponse.redirect(`${appUrl()}${next ?? '/dashboard'}`)
+  return NextResponse.redirect(`${appUrl(request.nextUrl.origin)}${next ?? '/dashboard'}`)
 }

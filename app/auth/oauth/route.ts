@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
   const supabase = await createClient()
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: provider as 'github' | 'google',
-    options: { redirectTo: `${appUrl()}/auth/callback` }
+    options: { redirectTo: `${appUrl(request.nextUrl.origin)}/auth/callback` }
   })
 
   if (error || !data.url) return new NextResponse(error?.message ?? 'OAuth failed', { status: 500 })
