@@ -166,6 +166,17 @@ function connectorIconSource(connector: Connector) {
   return (connector as RkConnector).rkDetails?.iconUrl ?? connector.icon
 }
 
+function isInjectedWalletName(name: string) {
+  const normalized = name.toLowerCase()
+  return normalized.includes('metamask') ||
+    normalized.includes('okx') ||
+    normalized.includes('trust') ||
+    normalized.includes('tokenpocket') ||
+    normalized.includes('binance') ||
+    normalized.includes('browser wallet') ||
+    normalized.includes('injected')
+}
+
 export function LoginPanel() {
   const router = useRouter()
   const [mode, setMode] = useState<'providers' | 'password'>('providers')
@@ -185,13 +196,17 @@ export function LoginPanel() {
     return new Map(connectors.map((connector) => [connectorDisplayName(connector), connector]))
   }, [connectors])
 
+  const injectedConnector = useMemo(() => {
+    return connectors.find((connector) => connector.id === 'injected' || connectorDisplayName(connector) === 'Browser Wallet')
+  }, [connectors])
+
   useEffect(() => {
     let cancelled = false
 
     async function loadIcons() {
       const walletOptions = loginOptions.filter((option): option is WalletLoginOption & { visualId: VisualProviderId } => option.type === 'wallet')
       const entries = await Promise.all(walletOptions.map(async (option) => {
-        const connector = connectorsByName.get(option.connectorName)
+        const connector = connectorsByName.get(option.connectorName) ?? (isInjectedWalletName(option.connectorName) ? injectedConnector : undefined)
         const iconSource = connector ? connectorIconSource(connector) : undefined
         const src = typeof iconSource === 'function' ? await iconSource() : iconSource
         return [option.visualId, src] as const
@@ -263,7 +278,7 @@ export function LoginPanel() {
   }
 
   async function loginWithWallet(option: WalletLoginOption & { visualId: VisualProviderId }) {
-    const connector = connectorsByName.get(option.connectorName)
+    const connector = connectorsByName.get(option.connectorName) ?? (isInjectedWalletName(option.connectorName) ? injectedConnector : undefined)
     if (!connector) {
       setWalletError(`${option.label} 钱包连接器不可用`)
       return

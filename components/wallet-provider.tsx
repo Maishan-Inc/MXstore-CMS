@@ -2,7 +2,7 @@
 
 import '@rainbow-me/rainbowkit/styles.css'
 import { RainbowKitProvider, getDefaultConfig } from '@rainbow-me/rainbowkit'
-import { baseAccount, metaMaskWallet, rainbowWallet, walletConnectWallet } from '@rainbow-me/rainbowkit/wallets'
+import { baseAccount, injectedWallet, rainbowWallet, walletConnectWallet } from '@rainbow-me/rainbowkit/wallets'
 import { WagmiProvider } from 'wagmi'
 import { mainnet, base, bsc } from 'wagmi/chains'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -16,7 +16,7 @@ const config = getDefaultConfig({
   wallets: [
     {
       groupName: 'MXStore 登录',
-      wallets: [rainbowWallet, baseAccount, metaMaskWallet, walletConnectWallet]
+      wallets: [rainbowWallet, baseAccount, injectedWallet, walletConnectWallet]
     }
   ],
   chains: [mainnet, base, bsc],
