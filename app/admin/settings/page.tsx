@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getCurrentStoreUser } from '@/lib/auth'
+import { DatabaseUpdateButton } from '@/components/database-update-button'
 
 export default async function AdminSettingsPage() {
   const user = await getCurrentStoreUser()
@@ -30,6 +31,8 @@ export default async function AdminSettingsPage() {
           <p className="mt-2 text-sm text-slate-500">配置快捷登录、OAuth、钱包连接器和登录按钮图标。</p>
         </Link>
       </div>
+
+      <DatabaseUpdateButton />
     </div>
   )
 }
