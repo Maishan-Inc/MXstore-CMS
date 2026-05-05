@@ -3,7 +3,7 @@ import { cookies } from 'next/headers'
 import { SiweMessage } from 'siwe'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sealJson, unsealJson } from '@/lib/crypto'
-import { WALLET_SESSION_COOKIE } from '@/lib/auth'
+import { WALLET_SESSION_COOKIE, upsertStoreUserProfile } from '@/lib/auth'
 import { getNextRouteForUser } from '@/lib/account'
 
 type NonceCookie = { nonce: string; issuedAt: number }
@@ -25,12 +25,15 @@ export async function POST(request: NextRequest) {
 
   const wallet = result.data.address.toLowerCase()
   const admin = createAdminClient()
-  const { data: user, error } = await admin
-    .from('store_users')
-    .upsert({ wallet_address: wallet, display_name: wallet }, { onConflict: 'wallet_address' })
-    .select('id,wallet_address,role,account_type,enterprise_certification_status,team_plan_status')
-    .single()
-  if (error) throw error
+  const user = await upsertStoreUserProfile(admin, {
+    wallet_address: wallet,
+    display_name: wallet
+  }, {
+    onConflict: 'wallet_address',
+    lookupColumn: 'wallet_address',
+    lookupValue: wallet
+  })
+  if (!user) throw new Error('Wallet user sync failed')
 
   cookieStore.set(WALLET_SESSION_COOKIE, sealJson({ userId: user.id, address: wallet, issuedAt: Date.now() }), {
     httpOnly: true,

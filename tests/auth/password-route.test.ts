@@ -2,7 +2,11 @@ import { afterEach, describe, expect, test, vi } from 'vitest'
 import type { NextRequest } from 'next/server'
 
 type MockStoreUser = {
+  id: string
   role: 'admin' | 'user'
+  account_type?: 'unselected' | 'personal'
+  enterprise_certification_status?: 'not_required'
+  team_plan_status?: 'none'
 }
 
 type MockAuthUser = {
@@ -28,11 +32,19 @@ function createMockSupabase({
     error: null
   }],
   createUserResult = { data: { user: { id: 'auth-created' } }, error: null },
-  storeUser = { role: 'user' }
+  storeUser = {
+    id: 'store-user-1',
+    role: 'user',
+    account_type: 'personal',
+    enterprise_certification_status: 'not_required',
+    team_plan_status: 'none'
+  },
+  profileResults
 }: {
   signInResults?: MockSignInResult[]
   createUserResult?: { data: { user: { id: string } | null }; error: MockAuthError | null }
   storeUser?: MockStoreUser
+  profileResults?: { data: MockStoreUser | null; error: MockAuthError | null }[]
 } = {}) {
   const signInWithPassword = vi.fn()
   signInResults.forEach((result) => {
@@ -40,10 +52,16 @@ function createMockSupabase({
   })
 
   const createUser = vi.fn().mockResolvedValue(createUserResult)
-  const single = vi.fn().mockResolvedValue({ data: storeUser, error: null })
-  const select = vi.fn(() => ({ single }))
-  const upsert = vi.fn(() => ({ select }))
-  const from = vi.fn(() => ({ upsert }))
+  const maybeSingle = vi.fn()
+  const results = profileResults ?? [{ data: storeUser, error: null }]
+  results.forEach((result) => {
+    maybeSingle.mockResolvedValueOnce(result)
+  })
+  maybeSingle.mockResolvedValue({ data: storeUser, error: null })
+  const eq = vi.fn(() => ({ maybeSingle }))
+  const select = vi.fn(() => ({ eq, maybeSingle }))
+  const upsert = vi.fn().mockResolvedValue({ error: null })
+  const from = vi.fn(() => ({ upsert, select }))
 
   return {
     auth: {
@@ -56,7 +74,10 @@ function createMockSupabase({
     mocks: {
       createUser,
       from,
-      upsert
+      upsert,
+      select,
+      eq,
+      maybeSingle
     }
   }
 }
@@ -136,9 +157,24 @@ describe('password login route', () => {
   test('redirects admin password users to admin console', async () => {
     const response = await postPasswordLogin(
       { email: 'admin@example.com', password: 'admin1234' },
-      createMockSupabase({ storeUser: { role: 'admin' } })
+      createMockSupabase({ storeUser: { id: 'store-admin-1', role: 'admin' } })
     )
 
+    await expect(response.json()).resolves.toEqual({ ok: true, next: '/admin' })
+  })
+
+  test('falls back to base profile columns when upgraded account columns are missing', async () => {
+    const response = await postPasswordLogin(
+      { email: 'admin@example.com', password: 'admin1234' },
+      createMockSupabase({
+        profileResults: [
+          { data: null, error: { message: "column store_users.account_type does not exist" } },
+          { data: { id: 'store-admin-1', role: 'admin' }, error: null }
+        ]
+      })
+    )
+
+    expect(response.status).toBe(200)
     await expect(response.json()).resolves.toEqual({ ok: true, next: '/admin' })
   })
 

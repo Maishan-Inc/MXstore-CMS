@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { appUrl } from '@/lib/env'
 import { getNextRouteForUser } from '@/lib/account'
+import { loadStoreUserBy, upsertStoreUserProfile } from '@/lib/auth'
 
 function socialAvatarUrl(metadata: Record<string, unknown>) {
   const avatar = metadata.avatar_url ?? metadata.picture
@@ -17,16 +18,15 @@ export async function GET(request: NextRequest) {
     const { data } = await supabase.auth.exchangeCodeForSession(code)
     if (data.user) {
       const adminClient = createAdminClient()
-      await adminClient
-        .from('store_users')
-        .upsert(
-          {
-            auth_user_id: data.user.id,
-            email: data.user.email ?? null,
-            display_name: data.user.user_metadata?.name ?? data.user.email ?? null
-          },
-          { onConflict: 'auth_user_id' }
-        )
+      await upsertStoreUserProfile(adminClient, {
+        auth_user_id: data.user.id,
+        email: data.user.email ?? null,
+        display_name: data.user.user_metadata?.name ?? data.user.email ?? null
+      }, {
+        onConflict: 'auth_user_id',
+        lookupColumn: 'auth_user_id',
+        lookupValue: data.user.id
+      })
 
       const avatarUrl = socialAvatarUrl(data.user.user_metadata ?? {})
       if (avatarUrl) {
@@ -49,11 +49,7 @@ export async function GET(request: NextRequest) {
       }
 
       if (!next) {
-        const { data: storeUser } = await adminClient
-          .from('store_users')
-          .select('role,account_type,enterprise_certification_status,team_plan_status')
-          .eq('auth_user_id', data.user.id)
-          .maybeSingle()
+        const storeUser = await loadStoreUserBy(adminClient, 'auth_user_id', data.user.id)
         next = storeUser ? getNextRouteForUser(storeUser) : '/dashboard'
       }
     }

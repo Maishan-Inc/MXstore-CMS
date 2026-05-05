@@ -7,6 +7,9 @@ import type { AccountType, EnterpriseCertificationStatus, TeamPlanStatus } from 
 
 export const WALLET_SESSION_COOKIE = 'store_wallet_session'
 
+const STORE_USER_BASE_SELECT = 'id,role,email,display_name,wallet_address,auth_user_id'
+const STORE_USER_EXTENDED_SELECT = `${STORE_USER_BASE_SELECT},avatar_url,avatar_source,account_type,developer_name,developer_avatar_url,organization_name,enterprise_certification_status,enterprise_certification_note,team_plan_status,download_quota_bytes,distribution_quota_bytes,distribution_charge_threshold_bytes`
+
 export type StoreUser = {
   id: string
   role: 'user' | 'admin'
@@ -41,6 +44,15 @@ type StoreUserRow = Partial<Omit<StoreUser, 'id' | 'role'>> & {
   avatar_source?: 'none' | 'oauth' | 'custom' | null
 }
 
+type StoreUserLookupColumn = 'id' | 'auth_user_id' | 'wallet_address'
+
+type StoreUserUpsertPayload = {
+  auth_user_id?: string
+  email?: string | null
+  display_name?: string | null
+  wallet_address?: string
+}
+
 function normalizeStoreUser(row: StoreUserRow | null): StoreUser | null {
   if (!row) return null
   return {
@@ -65,9 +77,61 @@ function normalizeStoreUser(row: StoreUserRow | null): StoreUser | null {
   }
 }
 
-function isMissingAvatarColumn(error: { message?: string } | null) {
+function isMissingStoreUserProfileColumn(error: { message?: string } | null) {
   const message = error?.message?.toLowerCase() ?? ''
-  return message.includes('avatar_url') || message.includes('avatar_source')
+  return [
+    'avatar_url',
+    'avatar_source',
+    'account_type',
+    'developer_name',
+    'developer_avatar_url',
+    'organization_name',
+    'enterprise_certification_status',
+    'enterprise_certification_note',
+    'team_plan_status',
+    'download_quota_bytes',
+    'distribution_quota_bytes',
+    'distribution_charge_threshold_bytes'
+  ].some((column) => message.includes(column))
+}
+
+export async function loadStoreUserBy(
+  admin: ReturnType<typeof createAdminClient>,
+  column: StoreUserLookupColumn,
+  value: string
+): Promise<StoreUser | null> {
+  const extended = await admin
+    .from('store_users')
+    .select(STORE_USER_EXTENDED_SELECT)
+    .eq(column, value)
+    .maybeSingle()
+  if (!extended.error) return normalizeStoreUser(extended.data as StoreUserRow | null)
+  if (!isMissingStoreUserProfileColumn(extended.error)) throw extended.error
+
+  const { data, error } = await admin
+    .from('store_users')
+    .select(STORE_USER_BASE_SELECT)
+    .eq(column, value)
+    .maybeSingle()
+  if (error) throw error
+  return normalizeStoreUser(data as StoreUserRow | null)
+}
+
+export async function upsertStoreUserProfile(
+  admin: ReturnType<typeof createAdminClient>,
+  payload: StoreUserUpsertPayload,
+  options: {
+    onConflict: 'auth_user_id' | 'wallet_address'
+    lookupColumn: StoreUserLookupColumn
+    lookupValue: string
+  }
+): Promise<StoreUser | null> {
+  const { error } = await admin
+    .from('store_users')
+    .upsert(payload, { onConflict: options.onConflict })
+  if (error) throw error
+
+  return loadStoreUserBy(admin, options.lookupColumn, options.lookupValue)
 }
 
 export async function getCurrentStoreUser(): Promise<StoreUser | null> {
@@ -76,48 +140,22 @@ export async function getCurrentStoreUser(): Promise<StoreUser | null> {
   const { data: authData } = await supabase.auth.getUser()
 
   if (authData.user) {
-    const upsertPayload = {
+    return upsertStoreUserProfile(admin, {
       auth_user_id: authData.user.id,
       email: authData.user.email ?? null,
       display_name: authData.user.user_metadata?.name ?? authData.user.email ?? null
-    }
-    const extended = await admin
-      .from('store_users')
-      .upsert(upsertPayload, { onConflict: 'auth_user_id' })
-      .select('id,role,email,display_name,wallet_address,auth_user_id,avatar_url,avatar_source,account_type,developer_name,developer_avatar_url,organization_name,enterprise_certification_status,enterprise_certification_note,team_plan_status,download_quota_bytes,distribution_quota_bytes,distribution_charge_threshold_bytes')
-      .single()
-
-    if (!extended.error) return normalizeStoreUser(extended.data as StoreUserRow)
-    if (!isMissingAvatarColumn(extended.error)) throw extended.error
-
-    const { data, error } = await admin
-      .from('store_users')
-      .upsert(upsertPayload, { onConflict: 'auth_user_id' })
-      .select('id,role,email,display_name,wallet_address,auth_user_id')
-      .single()
-    if (error) throw error
-    return normalizeStoreUser(data as StoreUserRow)
+    }, {
+      onConflict: 'auth_user_id',
+      lookupColumn: 'auth_user_id',
+      lookupValue: authData.user.id
+    })
   }
 
   const cookieStore = await cookies()
   const walletSession = unsealJson<WalletSession>(cookieStore.get(WALLET_SESSION_COOKIE)?.value)
   if (!walletSession?.userId) return null
 
-  const extended = await admin
-    .from('store_users')
-    .select('id,role,email,display_name,wallet_address,auth_user_id,avatar_url,avatar_source,account_type,developer_name,developer_avatar_url,organization_name,enterprise_certification_status,enterprise_certification_note,team_plan_status,download_quota_bytes,distribution_quota_bytes,distribution_charge_threshold_bytes')
-    .eq('id', walletSession.userId)
-    .maybeSingle()
-  if (!extended.error) return normalizeStoreUser(extended.data as StoreUserRow | null)
-  if (!isMissingAvatarColumn(extended.error)) throw extended.error
-
-  const { data, error } = await admin
-    .from('store_users')
-    .select('id,role,email,display_name,wallet_address,auth_user_id')
-    .eq('id', walletSession.userId)
-    .maybeSingle()
-  if (error) throw error
-  return normalizeStoreUser(data as StoreUserRow | null)
+  return loadStoreUserBy(admin, 'id', walletSession.userId)
 }
 
 export async function requireUser() {

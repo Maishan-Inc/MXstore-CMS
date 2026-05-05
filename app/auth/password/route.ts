@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createRouteClient } from '@/lib/supabase/route'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { upsertStoreUserProfile } from '@/lib/auth'
 import { getNextRouteForUser } from '@/lib/account'
 
 const passwordLoginSchema = z.object({
@@ -55,20 +56,22 @@ export async function POST(request: NextRequest) {
   }
 
   const admin = createAdminClient()
-  const { data: storeUser, error: storeUserError } = await admin
-    .from('store_users')
-    .upsert(
+  let storeUser: Awaited<ReturnType<typeof upsertStoreUserProfile>>
+  try {
+    storeUser = await upsertStoreUserProfile(
+      admin,
       {
         auth_user_id: data.user.id,
         email: data.user.email ?? parsed.data.email,
         display_name: data.user.user_metadata?.name ?? data.user.email ?? parsed.data.email
       },
-      { onConflict: 'auth_user_id' }
+      {
+        onConflict: 'auth_user_id',
+        lookupColumn: 'auth_user_id',
+        lookupValue: data.user.id
+      }
     )
-    .select('role,account_type,enterprise_certification_status,team_plan_status')
-    .single()
-
-  if (storeUserError) {
+  } catch {
     return NextResponse.json({ ok: false, error: '账户资料同步失败，请重试' }, { status: 500 })
   }
 
