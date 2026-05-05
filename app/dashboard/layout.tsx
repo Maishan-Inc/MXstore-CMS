@@ -1,41 +1,113 @@
 import Link from 'next/link'
+import { headers } from 'next/headers'
+import {
+  ChevronDown,
+  CreditCard,
+  Download,
+  ExternalLink,
+  Grid2X2,
+  Home,
+  Package,
+  Settings,
+  Wallet,
+  type LucideIcon
+} from 'lucide-react'
 import { getCurrentStoreUser } from '@/lib/auth'
 
 const navItems = [
-  { href: '/dashboard', label: '概览' },
-  { href: '/dashboard/apps', label: '已购应用' },
-  { href: '/dashboard/downloads', label: '下载记录' },
-  { href: '/dashboard/traffic', label: '流量明细' },
-  { href: '/dashboard/orders', label: '我的订单' },
-  { href: '/dashboard/billing', label: '充值流量' },
-  { href: '/dashboard/settings', label: '账户设置' }
-]
+  { href: '/dashboard', label: '概览', icon: Home },
+  { href: '/dashboard/apps', label: '我的应用', icon: Grid2X2 },
+  { href: '/dashboard/downloads', label: '下载记录', icon: Download },
+  { href: '/dashboard/traffic', label: '流量余额', icon: Package },
+  { href: '/dashboard/orders', label: '订单支付', icon: CreditCard },
+  { href: '/dashboard/settings', label: '钱包设置', icon: Wallet }
+] satisfies Array<{ href: string; label: string; icon: LucideIcon }>
+
+function isActivePath(pathname: string, href: string) {
+  if (href === '/dashboard') return pathname === '/dashboard'
+  return pathname === href || pathname.startsWith(`${href}/`)
+}
+
+function compactAccount(user: Awaited<ReturnType<typeof getCurrentStoreUser>>) {
+  const address = user?.wallet_address
+  if (address && address.length > 12) return `${address.slice(0, 6)}...${address.slice(-4)}`
+  return user?.email ?? address ?? '用户'
+}
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentStoreUser()
+  const headerList = await headers()
+  const pathname = headerList.get('x-pathname') ?? '/dashboard'
 
   return (
-    <div className="space-y-6">
-      <header className="rounded-3xl border border-slate-200 bg-white px-6 py-5 shadow-sm">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-sm text-slate-500">用户后台</p>
-            <h1 className="mt-1 text-2xl font-semibold text-slate-900">{user?.email ?? user?.wallet_address ?? '用户'}</h1>
-          </div>
-          <nav className="flex gap-2">
-            {navItems.map((item) => (
+    <div className="min-h-screen bg-[#f8fafc] text-slate-950">
+      <div className="flex min-h-screen flex-col lg:flex-row">
+        <aside className="shrink-0 border-slate-200 bg-white lg:min-h-screen lg:w-[300px] lg:border-r">
+          <div className="flex h-full flex-col px-5 py-9">
+            <Link href="/dashboard" className="mb-12 flex items-center gap-2 text-slate-950">
+              <span className="text-2xl font-semibold tracking-tight">MXStore</span>
+              <span className="text-lg font-semibold">用户中心</span>
+            </Link>
+            <nav className="grid gap-3">
+              {navItems.map((item) => {
+                const active = isActivePath(pathname, item.href)
+                const Icon = item.icon
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={active
+                      ? 'flex h-16 items-center gap-4 rounded-2xl bg-blue-50 px-7 text-[15px] font-semibold text-blue-600 shadow-[inset_0_0_0_1px_rgba(59,130,246,0.04)]'
+                      : 'flex h-16 items-center gap-4 rounded-2xl px-7 text-[15px] font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-950'}
+                  >
+                    <Icon className={active ? 'h-5 w-5 text-blue-600' : 'h-5 w-5 text-slate-500'} strokeWidth={2} />
+                    <span>{item.label}</span>
+                  </Link>
+                )
+              })}
+            </nav>
+            <div className="mt-auto pt-10">
               <Link
-                key={item.href}
-                href={item.href}
-                className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                href="/"
+                className="flex h-12 items-center justify-between rounded-xl px-7 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-950"
               >
-                {item.label}
+                <span className="inline-flex items-center gap-3">
+                  <Settings className="h-5 w-5" />
+                  帮助中心
+                </span>
+                <ExternalLink className="h-4 w-4" />
               </Link>
-            ))}
-          </nav>
+            </div>
+          </div>
+        </aside>
+
+        <div className="min-w-0 flex-1">
+          <header className="sticky top-0 z-20 border-b border-transparent bg-white/90 px-6 py-7 backdrop-blur lg:px-14">
+            <div className="flex items-center justify-between gap-6">
+              <h1 className="text-2xl font-semibold tracking-tight text-slate-950">欢迎回来</h1>
+              <div className="flex items-center gap-4">
+                <div className="hidden h-14 items-center gap-3 rounded-full border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-800 shadow-[0_1px_2px_rgba(15,23,42,0.03)] sm:flex">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-xs">◆</span>
+                  {compactAccount(user)}
+                  <ChevronDown className="h-4 w-4 text-slate-500" />
+                </div>
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-100 text-base font-semibold text-blue-700">
+                  {compactAccount(user).slice(0, 1).toUpperCase()}
+                </div>
+                <ChevronDown className="h-4 w-4 text-slate-500" />
+              </div>
+            </div>
+          </header>
+          <main className="px-6 pb-10 pt-6 lg:px-14">{children}</main>
+          <footer className="border-t border-slate-200 bg-white px-6 py-8 text-sm text-slate-500 lg:px-14">
+            <div className="mx-auto flex max-w-5xl flex-col items-center justify-center gap-5 sm:flex-row">
+              <span>© 2024 MXStore，保留所有权利。</span>
+              <Link href="/" className="text-slate-500 hover:text-slate-900">服务条款</Link>
+              <Link href="/" className="text-slate-500 hover:text-slate-900">隐私政策</Link>
+            </div>
+          </footer>
         </div>
-      </header>
-      {children}
+      </div>
     </div>
   )
 }

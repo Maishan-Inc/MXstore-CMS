@@ -18,6 +18,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const isInstallPage = pathname === '/install' || pathname.startsWith('/install/')
   const isLoginPage = pathname === '/login'
   const isAdminPage = pathname === '/admin' || pathname.startsWith('/admin/')
+  const isDashboardPage = pathname === '/dashboard' || pathname.startsWith('/dashboard/')
 
   // Install page gets its own full-screen layout without nav
   if (isInstallPage) {
@@ -42,6 +43,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     return (
       <html lang="zh-CN">
         <body>{children}</body>
+      </html>
+    )
+  }
+
+  if (isDashboardPage) {
+    return (
+      <html lang="zh-CN">
+        <body>
+          <WalletProvider>{children}</WalletProvider>
+        </body>
       </html>
     )
   }
