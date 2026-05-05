@@ -22,39 +22,77 @@ type WalletSession = {
   issuedAt: number
 }
 
+type StoreUserRow = Omit<StoreUser, 'avatar_url' | 'avatar_source'> & {
+  avatar_url?: string | null
+  avatar_source?: 'none' | 'oauth' | 'custom' | null
+}
+
+function normalizeStoreUser(row: StoreUserRow | null): StoreUser | null {
+  if (!row) return null
+  return {
+    id: row.id,
+    role: row.role,
+    email: row.email,
+    wallet_address: row.wallet_address,
+    auth_user_id: row.auth_user_id,
+    avatar_url: row.avatar_url ?? null,
+    avatar_source: row.avatar_source ?? 'none'
+  }
+}
+
+function isMissingAvatarColumn(error: { message?: string } | null) {
+  const message = error?.message?.toLowerCase() ?? ''
+  return message.includes('avatar_url') || message.includes('avatar_source')
+}
+
 export async function getCurrentStoreUser(): Promise<StoreUser | null> {
   const supabase = await createClient()
   const admin = createAdminClient()
   const { data: authData } = await supabase.auth.getUser()
 
   if (authData.user) {
-    const { data, error } = await admin
+    const upsertPayload = {
+      auth_user_id: authData.user.id,
+      email: authData.user.email ?? null,
+      display_name: authData.user.user_metadata?.name ?? authData.user.email ?? null
+    }
+    const extended = await admin
       .from('store_users')
-      .upsert(
-        {
-          auth_user_id: authData.user.id,
-          email: authData.user.email ?? null,
-          display_name: authData.user.user_metadata?.name ?? authData.user.email ?? null
-        },
-        { onConflict: 'auth_user_id' }
-      )
+      .upsert(upsertPayload, { onConflict: 'auth_user_id' })
       .select('id,role,email,wallet_address,auth_user_id,avatar_url,avatar_source')
       .single()
+
+    if (!extended.error) return normalizeStoreUser(extended.data as StoreUserRow)
+    if (!isMissingAvatarColumn(extended.error)) throw extended.error
+
+    const { data, error } = await admin
+      .from('store_users')
+      .upsert(upsertPayload, { onConflict: 'auth_user_id' })
+      .select('id,role,email,wallet_address,auth_user_id')
+      .single()
     if (error) throw error
-    return data as StoreUser
+    return normalizeStoreUser(data as StoreUserRow)
   }
 
   const cookieStore = await cookies()
   const walletSession = unsealJson<WalletSession>(cookieStore.get(WALLET_SESSION_COOKIE)?.value)
   if (!walletSession?.userId) return null
 
-  const { data, error } = await admin
+  const extended = await admin
     .from('store_users')
     .select('id,role,email,wallet_address,auth_user_id,avatar_url,avatar_source')
     .eq('id', walletSession.userId)
     .maybeSingle()
+  if (!extended.error) return normalizeStoreUser(extended.data as StoreUserRow | null)
+  if (!isMissingAvatarColumn(extended.error)) throw extended.error
+
+  const { data, error } = await admin
+    .from('store_users')
+    .select('id,role,email,wallet_address,auth_user_id')
+    .eq('id', walletSession.userId)
+    .maybeSingle()
   if (error) throw error
-  return data as StoreUser | null
+  return normalizeStoreUser(data as StoreUserRow | null)
 }
 
 export async function requireUser() {
