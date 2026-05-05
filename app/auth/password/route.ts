@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getNextRouteForUser } from '@/lib/account'
 
 const passwordLoginSchema = z.object({
   email: z.string().email().transform((email) => email.toLowerCase()),
@@ -64,7 +65,7 @@ export async function POST(request: NextRequest) {
       },
       { onConflict: 'auth_user_id' }
     )
-    .select('role')
+    .select('role,account_type,enterprise_certification_status,team_plan_status')
     .single()
 
   if (storeUserError) {
@@ -73,6 +74,6 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({
     ok: true,
-    next: storeUser?.role === 'admin' ? '/admin' : '/dashboard'
+    next: storeUser ? getNextRouteForUser(storeUser) : '/dashboard'
   })
 }

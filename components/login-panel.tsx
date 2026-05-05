@@ -309,10 +309,10 @@ export function LoginPanel() {
       body: JSON.stringify({ message, signature })
     })
     if (!verifyRes.ok) throw new Error(await verifyRes.text())
-    const data = await verifyRes.json() as { role?: 'admin' | 'user' }
+    const data = await verifyRes.json() as { role?: 'admin' | 'user'; next?: string }
     setAuthOverlay((current) => current ? { ...current, status: 'success', message: '授权成功' } : current)
     await sleep(700)
-    router.push(data.role === 'admin' ? '/admin' : '/dashboard')
+    router.push(data.next ?? (data.role === 'admin' ? '/admin' : '/dashboard'))
     router.refresh()
   }
 

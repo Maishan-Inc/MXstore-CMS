@@ -9,6 +9,7 @@ type AdminAppFormProps = {
   appId?: string
   initialValues?: AdminAppFormValues
   categories?: Array<{ id: string; name: string }>
+  editBasePath?: string
 }
 
 function makeNewLink(index: number): AdminAppLinkInput {
@@ -22,7 +23,7 @@ function makeNewLink(index: number): AdminAppLinkInput {
   }
 }
 
-export function AdminAppForm({ mode = 'create', appId, initialValues, categories = [] }: AdminAppFormProps) {
+export function AdminAppForm({ mode = 'create', appId, initialValues, categories = [], editBasePath = '/admin/apps' }: AdminAppFormProps) {
   const router = useRouter()
   const defaults = useMemo(() => initialValues ?? appFormDefaults(), [initialValues])
   const [links, setLinks] = useState<AdminAppLinkInput[]>(defaults.links)
@@ -47,6 +48,8 @@ export function AdminAppForm({ mode = 'create', appId, initialValues, categories
       version: formData.get('version'),
       platform: formData.get('platform'),
       logo_url: formData.get('logo_url'),
+      developer_name: formData.get('developer_name'),
+      developer_avatar_url: formData.get('developer_avatar_url'),
       category_id: String(formData.get('category_id') ?? ''),
       download_permission: String(formData.get('download_permission') || 'login'),
       is_paid: formData.get('download_permission') === 'purchase',
@@ -71,7 +74,7 @@ export function AdminAppForm({ mode = 'create', appId, initialValues, categories
       })
       if (!res.ok) throw new Error(await res.text())
       const data = await res.json()
-      router.push(`/admin/apps/${data.id}/edit`)
+      router.push(`${editBasePath}/${data.id}/edit`)
       router.refresh()
     } catch (e) {
       setError(e instanceof Error ? e.message : mode === 'create' ? '创建失败' : '保存失败')
@@ -111,6 +114,14 @@ export function AdminAppForm({ mode = 'create', appId, initialValues, categories
         <label>
           <span className="label">Logo URL</span>
           <input name="logo_url" defaultValue={defaults.logo_url} className="input" placeholder="https://..." />
+        </label>
+        <label>
+          <span className="label">开发者名称</span>
+          <input name="developer_name" defaultValue={defaults.developer_name} className="input" required placeholder="开发者、团队或公司名称" />
+        </label>
+        <label>
+          <span className="label">开发者头像 URL</span>
+          <input name="developer_avatar_url" defaultValue={defaults.developer_avatar_url} className="input" placeholder="https://..." />
         </label>
         <label>
           <span className="label">货币</span>

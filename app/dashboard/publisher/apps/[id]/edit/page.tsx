@@ -1,0 +1,49 @@
+import { redirect, notFound } from 'next/navigation'
+import { getCurrentStoreUser } from '@/lib/auth'
+import { canPublishApps } from '@/lib/account'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { AdminAppForm } from '@/components/admin-app-form'
+import { normalizeAppPayload } from '@/lib/admin/apps'
+
+export default async function PublisherEditAppPage({ params }: { params: Promise<{ id: string }> }) {
+  const user = await getCurrentStoreUser()
+  if (!user) redirect('/login')
+  if (!canPublishApps(user)) redirect('/dashboard')
+
+  const { id } = await params
+  const supabase = createAdminClient()
+  const [{ data: app }, { data: categories }] = await Promise.all([
+    supabase
+      .from('apps')
+      .select('id,name,slug,description,version,platform,logo_url,developer_name,developer_avatar_url,category_id,download_permission,is_paid,price_cents,currency,published,created_by,app_links(id,name,input_url,file_size_bytes,charge_traffic,sort_order)')
+      .eq('id', id)
+      .eq('created_by', user.id)
+      .maybeSingle(),
+    supabase
+      .from('app_categories')
+      .select('id,name')
+      .eq('enabled', true)
+      .order('sort_order', { ascending: true })
+  ])
+
+  if (!app) notFound()
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold text-slate-900">编辑应用</h1>
+        <p className="mt-2 text-sm text-slate-500">仅可编辑自己创建的应用。</p>
+      </div>
+
+      <section className="card">
+        <AdminAppForm
+          mode="edit"
+          appId={app.id}
+          editBasePath="/dashboard/publisher/apps"
+          initialValues={normalizeAppPayload(app)}
+          categories={categories ?? []}
+        />
+      </section>
+    </div>
+  )
+}

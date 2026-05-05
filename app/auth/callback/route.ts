@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { appUrl } from '@/lib/env'
+import { getNextRouteForUser } from '@/lib/account'
 
 function socialAvatarUrl(metadata: Record<string, unknown>) {
   const avatar = metadata.avatar_url ?? metadata.picture
@@ -48,13 +49,12 @@ export async function GET(request: NextRequest) {
       }
 
       if (!next) {
-        // Check if user is admin and redirect accordingly
         const { data: storeUser } = await adminClient
           .from('store_users')
-          .select('role')
+          .select('role,account_type,enterprise_certification_status,team_plan_status')
           .eq('auth_user_id', data.user.id)
           .maybeSingle()
-        next = storeUser?.role === 'admin' ? '/admin' : '/dashboard'
+        next = storeUser ? getNextRouteForUser(storeUser) : '/dashboard'
       }
     }
   }

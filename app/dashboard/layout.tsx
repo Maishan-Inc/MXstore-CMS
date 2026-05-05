@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { headers } from 'next/headers'
+import { redirect } from 'next/navigation'
 import {
   ChevronDown,
   CreditCard,
@@ -8,13 +9,15 @@ import {
   Grid2X2,
   Home,
   Package,
+  UploadCloud,
   Settings,
   Wallet,
   type LucideIcon
 } from 'lucide-react'
 import { getCurrentStoreUser } from '@/lib/auth'
+import { canPublishApps } from '@/lib/account'
 
-const navItems = [
+const baseNavItems = [
   { href: '/dashboard', label: '概览', icon: Home },
   { href: '/dashboard/apps', label: '我的应用', icon: Grid2X2 },
   { href: '/dashboard/downloads', label: '下载记录', icon: Download },
@@ -38,6 +41,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const user = await getCurrentStoreUser()
   const headerList = await headers()
   const pathname = headerList.get('x-pathname') ?? '/dashboard'
+  if (user?.account_type === 'unselected') redirect('/onboarding')
+  const navItems = user && canPublishApps(user)
+    ? [
+        ...baseNavItems.slice(0, 2),
+        { href: '/dashboard/publisher/apps', label: '发布应用', icon: UploadCloud },
+        ...baseNavItems.slice(2)
+      ]
+    : baseNavItems
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-950">

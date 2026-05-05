@@ -4,6 +4,7 @@ import { SiweMessage } from 'siwe'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sealJson, unsealJson } from '@/lib/crypto'
 import { WALLET_SESSION_COOKIE } from '@/lib/auth'
+import { getNextRouteForUser } from '@/lib/account'
 
 type NonceCookie = { nonce: string; issuedAt: number }
 
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
   const { data: user, error } = await admin
     .from('store_users')
     .upsert({ wallet_address: wallet, display_name: wallet }, { onConflict: 'wallet_address' })
-    .select('id,wallet_address,role')
+    .select('id,wallet_address,role,account_type,enterprise_certification_status,team_plan_status')
     .single()
   if (error) throw error
 
@@ -39,5 +40,5 @@ export async function POST(request: NextRequest) {
     maxAge: 60 * 60 * 24 * 30
   })
   cookieStore.delete('siwe_nonce')
-  return NextResponse.json({ ok: true, userId: user.id, address: wallet, role: user.role })
+  return NextResponse.json({ ok: true, userId: user.id, address: wallet, role: user.role, next: getNextRouteForUser(user) })
 }

@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { requireAdmin } from '@/lib/auth'
+import { requireAdmin, requireUser } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { findTokenDomainByUrl } from '@/lib/openlist'
+import { canPublishApps, getDeveloperProfile } from '@/lib/account'
 
 const LinkSchema = z.object({
   id: z.string().uuid().nullable().optional(),
@@ -20,6 +21,8 @@ const AppSchema = z.object({
   version: z.string().optional().nullable(),
   platform: z.string().optional().nullable(),
   logo_url: z.string().url().optional().or(z.literal('')).nullable(),
+  developer_name: z.string().optional().nullable(),
+  developer_avatar_url: z.string().url().optional().or(z.literal('')).nullable(),
   category_id: z.string().uuid().optional().or(z.literal('')).nullable(),
   download_permission: z.enum(['public', 'login', 'purchase']).default('login'),
   is_paid: z.boolean().default(false),
@@ -87,9 +90,15 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const user = await requireAdmin()
+  const user = await requireUser()
+  if (user.role !== 'admin' && !canPublishApps(user)) {
+    return new NextResponse('当前身份没有应用发布权限', { status: 403 })
+  }
   const body = AppSchema.parse(await request.json())
   const supabase = createAdminClient()
+  const userProfile = user.role === 'admin' ? null : getDeveloperProfile(user)
+  const developerName = user.role === 'admin' ? body.developer_name || body.name : userProfile?.name ?? body.name
+  const developerAvatarUrl = user.role === 'admin' ? body.developer_avatar_url || null : userProfile?.avatarUrl ?? null
 
   const { data: app, error: appError } = await supabase
     .from('apps')
@@ -105,6 +114,8 @@ export async function POST(request: Request) {
       is_paid: body.download_permission === 'purchase' || body.is_paid,
       price_cents: body.price_cents,
       currency: body.currency,
+      developer_name: developerName,
+      developer_avatar_url: developerAvatarUrl,
       published: body.published,
       created_by: user.id
     })
@@ -123,12 +134,31 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  await requireAdmin()
+  const user = await requireUser()
+  if (user.role !== 'admin' && !canPublishApps(user)) {
+    return new NextResponse('当前身份没有应用发布权限', { status: 403 })
+  }
   const appId = new URL(request.url).searchParams.get('id')
   if (!appId) return new NextResponse('缺少应用 id', { status: 400 })
 
   const body = AppSchema.parse(await request.json())
   const supabase = createAdminClient()
+  const { data: existingApp, error: existingError } = await supabase
+    .from('apps')
+    .select('id,created_by')
+    .eq('id', appId)
+    .maybeSingle()
+
+  if (existingError) return new NextResponse(existingError.message, { status: 500 })
+  if (!existingApp) return new NextResponse('应用不存在', { status: 404 })
+  if (user.role !== 'admin' && existingApp.created_by !== user.id) {
+    return new NextResponse('只能编辑自己创建的应用', { status: 403 })
+  }
+
+  const userProfile = user.role === 'admin' ? null : getDeveloperProfile(user)
+  const developerName = user.role === 'admin' ? body.developer_name || body.name : userProfile?.name ?? body.name
+  const developerAvatarUrl = user.role === 'admin' ? body.developer_avatar_url || null : userProfile?.avatarUrl ?? null
+
   const { data: app, error: appError } = await supabase
     .from('apps')
     .update({
@@ -143,6 +173,8 @@ export async function PUT(request: Request) {
       is_paid: body.download_permission === 'purchase' || body.is_paid,
       price_cents: body.price_cents,
       currency: body.currency,
+      developer_name: developerName,
+      developer_avatar_url: developerAvatarUrl,
       published: body.published,
       updated_at: new Date().toISOString()
     })

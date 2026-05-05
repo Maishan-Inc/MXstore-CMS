@@ -2,15 +2,9 @@ import { redirect } from 'next/navigation'
 import { getCurrentStoreUser } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { formatBytes } from '@/lib/format'
-import { getRoleTone } from '@/lib/admin/labels'
 import { UserRoleSelect } from '@/components/admin-user-role'
-
-function badgeClass(tone: 'success' | 'danger' | 'muted' | 'info') {
-  if (tone === 'success') return 'rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700'
-  if (tone === 'danger') return 'rounded-full bg-rose-50 px-3 py-1 text-xs font-medium text-rose-700'
-  if (tone === 'info') return 'rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700'
-  return 'rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600'
-}
+import { AdminUserQuotas } from '@/components/admin-user-quotas'
+import { AdminUserIdentity } from '@/components/admin-user-identity'
 
 export default async function AdminUsersPage() {
   const user = await getCurrentStoreUser()
@@ -19,7 +13,7 @@ export default async function AdminUsersPage() {
 
   const supabase = createAdminClient()
   const [{ data: users, error: usersError }, { data: balances, error: balancesError }, { data: entitlements, error: entitlementsError }] = await Promise.all([
-    supabase.from('store_users').select('id,email,wallet_address,role,created_at').order('created_at', { ascending: false }),
+    supabase.from('store_users').select('id,email,wallet_address,role,account_type,enterprise_certification_status,team_plan_status,organization_name,developer_name,download_quota_bytes,distribution_quota_bytes,distribution_charge_threshold_bytes,created_at').order('created_at', { ascending: false }),
     supabase.from('user_traffic_balances').select('user_id,balance_bytes'),
     supabase.from('app_entitlements').select('user_id')
   ])
@@ -48,9 +42,10 @@ export default async function AdminUsersPage() {
               <tr>
                 <th className="px-5 py-3 font-medium">用户</th>
                 <th className="px-5 py-3 font-medium">钱包地址</th>
-                <th className="px-5 py-3 font-medium">角色</th>
+                <th className="px-5 py-3 font-medium">角色 / 身份</th>
                 <th className="px-5 py-3 font-medium">流量余额</th>
                 <th className="px-5 py-3 font-medium">已购应用数</th>
+                <th className="px-5 py-3 font-medium">独立配额</th>
                 <th className="px-5 py-3 font-medium">创建时间</th>
               </tr>
             </thead>
@@ -65,10 +60,28 @@ export default async function AdminUsersPage() {
                   </td>
                   <td className="px-5 py-4 text-xs text-slate-500">{record.wallet_address ?? '-'}</td>
                   <td className="px-5 py-4">
-                    <UserRoleSelect userId={record.id} currentRole={record.role} />
+                    <div className="space-y-2">
+                      <UserRoleSelect userId={record.id} currentRole={record.role} />
+                      <AdminUserIdentity
+                        userId={record.id}
+                        accountType={record.account_type}
+                        enterpriseStatus={record.enterprise_certification_status}
+                        teamPlanStatus={record.team_plan_status}
+                        organizationName={record.organization_name}
+                        developerName={record.developer_name}
+                      />
+                    </div>
                   </td>
                   <td className="px-5 py-4 text-slate-500">{formatBytes(balanceMap.get(record.id) ?? 0)}</td>
                   <td className="px-5 py-4 text-slate-500">{entitlementCountMap.get(record.id) ?? 0}</td>
+                  <td className="min-w-[420px] px-5 py-4">
+                    <AdminUserQuotas
+                      userId={record.id}
+                      downloadQuotaBytes={Number(record.download_quota_bytes ?? 0)}
+                      distributionQuotaBytes={Number(record.distribution_quota_bytes ?? 0)}
+                      distributionChargeThresholdBytes={Number(record.distribution_charge_threshold_bytes ?? 0)}
+                    />
+                  </td>
                   <td className="px-5 py-4 text-slate-500">{new Date(record.created_at).toLocaleString()}</td>
                 </tr>
               ))}

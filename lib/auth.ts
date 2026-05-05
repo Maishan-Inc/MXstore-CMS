@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { unsealJson } from '@/lib/crypto'
+import type { AccountType, EnterpriseCertificationStatus, TeamPlanStatus } from '@/lib/account'
 
 export const WALLET_SESSION_COOKIE = 'store_wallet_session'
 
@@ -10,10 +11,21 @@ export type StoreUser = {
   id: string
   role: 'user' | 'admin'
   email: string | null
+  display_name: string | null
   wallet_address: string | null
   auth_user_id: string | null
   avatar_url: string | null
   avatar_source: 'none' | 'oauth' | 'custom'
+  account_type: AccountType
+  developer_name: string | null
+  developer_avatar_url: string | null
+  organization_name: string | null
+  enterprise_certification_status: EnterpriseCertificationStatus
+  enterprise_certification_note: string | null
+  team_plan_status: TeamPlanStatus
+  download_quota_bytes: number
+  distribution_quota_bytes: number
+  distribution_charge_threshold_bytes: number
 }
 
 type WalletSession = {
@@ -22,7 +34,9 @@ type WalletSession = {
   issuedAt: number
 }
 
-type StoreUserRow = Omit<StoreUser, 'avatar_url' | 'avatar_source'> & {
+type StoreUserRow = Partial<Omit<StoreUser, 'id' | 'role'>> & {
+  id: string
+  role: 'user' | 'admin'
   avatar_url?: string | null
   avatar_source?: 'none' | 'oauth' | 'custom' | null
 }
@@ -32,11 +46,22 @@ function normalizeStoreUser(row: StoreUserRow | null): StoreUser | null {
   return {
     id: row.id,
     role: row.role,
-    email: row.email,
-    wallet_address: row.wallet_address,
-    auth_user_id: row.auth_user_id,
+    email: row.email ?? null,
+    display_name: row.display_name ?? null,
+    wallet_address: row.wallet_address ?? null,
+    auth_user_id: row.auth_user_id ?? null,
     avatar_url: row.avatar_url ?? null,
-    avatar_source: row.avatar_source ?? 'none'
+    avatar_source: row.avatar_source ?? 'none',
+    account_type: row.account_type ?? 'unselected',
+    developer_name: row.developer_name ?? null,
+    developer_avatar_url: row.developer_avatar_url ?? null,
+    organization_name: row.organization_name ?? null,
+    enterprise_certification_status: row.enterprise_certification_status ?? 'not_required',
+    enterprise_certification_note: row.enterprise_certification_note ?? null,
+    team_plan_status: row.team_plan_status ?? 'none',
+    download_quota_bytes: Number(row.download_quota_bytes ?? 0),
+    distribution_quota_bytes: Number(row.distribution_quota_bytes ?? 0),
+    distribution_charge_threshold_bytes: Number(row.distribution_charge_threshold_bytes ?? 1073741824)
   }
 }
 
@@ -59,7 +84,7 @@ export async function getCurrentStoreUser(): Promise<StoreUser | null> {
     const extended = await admin
       .from('store_users')
       .upsert(upsertPayload, { onConflict: 'auth_user_id' })
-      .select('id,role,email,wallet_address,auth_user_id,avatar_url,avatar_source')
+      .select('id,role,email,display_name,wallet_address,auth_user_id,avatar_url,avatar_source,account_type,developer_name,developer_avatar_url,organization_name,enterprise_certification_status,enterprise_certification_note,team_plan_status,download_quota_bytes,distribution_quota_bytes,distribution_charge_threshold_bytes')
       .single()
 
     if (!extended.error) return normalizeStoreUser(extended.data as StoreUserRow)
@@ -68,7 +93,7 @@ export async function getCurrentStoreUser(): Promise<StoreUser | null> {
     const { data, error } = await admin
       .from('store_users')
       .upsert(upsertPayload, { onConflict: 'auth_user_id' })
-      .select('id,role,email,wallet_address,auth_user_id')
+      .select('id,role,email,display_name,wallet_address,auth_user_id')
       .single()
     if (error) throw error
     return normalizeStoreUser(data as StoreUserRow)
@@ -80,7 +105,7 @@ export async function getCurrentStoreUser(): Promise<StoreUser | null> {
 
   const extended = await admin
     .from('store_users')
-    .select('id,role,email,wallet_address,auth_user_id,avatar_url,avatar_source')
+    .select('id,role,email,display_name,wallet_address,auth_user_id,avatar_url,avatar_source,account_type,developer_name,developer_avatar_url,organization_name,enterprise_certification_status,enterprise_certification_note,team_plan_status,download_quota_bytes,distribution_quota_bytes,distribution_charge_threshold_bytes')
     .eq('id', walletSession.userId)
     .maybeSingle()
   if (!extended.error) return normalizeStoreUser(extended.data as StoreUserRow | null)
@@ -88,7 +113,7 @@ export async function getCurrentStoreUser(): Promise<StoreUser | null> {
 
   const { data, error } = await admin
     .from('store_users')
-    .select('id,role,email,wallet_address,auth_user_id')
+    .select('id,role,email,display_name,wallet_address,auth_user_id')
     .eq('id', walletSession.userId)
     .maybeSingle()
   if (error) throw error

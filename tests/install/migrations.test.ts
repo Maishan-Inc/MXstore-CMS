@@ -7,7 +7,8 @@ const sqlFiles: Record<string, string> = {
   '0002_atomic_deduction.sql': 'create or replace function public.test_fn() returns void language plpgsql as $$ begin null; end; $$;',
   '0003_system_settings.sql': 'create table if not exists public.system_settings (key text primary key);',
   '0004_store_content_management.sql': 'create table if not exists public.app_categories (id uuid);',
-  '0005_user_avatar.sql': 'alter table public.store_users add column if not exists avatar_url text;'
+  '0005_user_avatar.sql': 'alter table public.store_users add column if not exists avatar_url text;',
+  '0006_account_identity_publish_traffic.sql': 'alter table public.store_users add column if not exists account_type text not null default'
 }
 
 type QueryCall = { text: string; params?: unknown[] }
@@ -78,7 +79,8 @@ describe('install migrations', () => {
       '0002_atomic_deduction.sql',
       '0003_system_settings.sql',
       '0004_store_content_management.sql',
-      '0005_user_avatar.sql'
+      '0005_user_avatar.sql',
+      '0006_account_identity_publish_traffic.sql'
     ])
     const executedSql = queries.map((query) => query.text)
     const migrationIndexes = Object.values(sqlFiles).map((sql) => executedSql.indexOf(sql))
@@ -101,7 +103,8 @@ describe('install migrations', () => {
       '0002_atomic_deduction.sql',
       '0003_system_settings.sql',
       '0004_store_content_management.sql',
-      '0005_user_avatar.sql'
+      '0005_user_avatar.sql',
+      '0006_account_identity_publish_traffic.sql'
     ])
   })
 

@@ -13,7 +13,7 @@ export default async function EditAppPage({ params }: { params: Promise<{ id: st
   const supabase = createAdminClient()
   const { data: app, error } = await supabase
     .from('apps')
-    .select('id,name,slug,description,version,platform,logo_url,category_id,download_permission,is_paid,price_cents,currency,published,app_links(id,name,input_url,file_size_bytes,charge_traffic,sort_order)')
+    .select('id,name,slug,description,version,platform,logo_url,developer_name,developer_avatar_url,category_id,download_permission,is_paid,price_cents,currency,published,app_links(id,name,input_url,file_size_bytes,charge_traffic,sort_order)')
     .eq('id', id)
     .maybeSingle()
   const { data: categories } = await supabase

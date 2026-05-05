@@ -14,6 +14,8 @@ export type AdminAppFormValues = {
   version: string
   platform: string
   logo_url: string
+  developer_name: string
+  developer_avatar_url: string
   category_id: string
   download_permission: 'public' | 'login' | 'purchase'
   is_paid: boolean
@@ -30,6 +32,8 @@ type ExistingApp = {
   version: string | null
   platform: string | null
   logo_url: string | null
+  developer_name?: string | null
+  developer_avatar_url?: string | null
   category_id?: string | null
   download_permission?: 'public' | 'login' | 'purchase' | null
   is_paid: boolean
@@ -54,6 +58,8 @@ export function appFormDefaults(): AdminAppFormValues {
     version: '',
     platform: '',
     logo_url: '',
+    developer_name: '',
+    developer_avatar_url: '',
     category_id: '',
     download_permission: 'login',
     is_paid: false,
@@ -81,6 +87,8 @@ export function normalizeAppPayload(app: ExistingApp): AdminAppFormValues {
     version: app.version ?? '',
     platform: app.platform ?? '',
     logo_url: app.logo_url ?? '',
+    developer_name: app.developer_name ?? '',
+    developer_avatar_url: app.developer_avatar_url ?? '',
     category_id: app.category_id ?? '',
     download_permission: app.download_permission ?? (app.is_paid ? 'purchase' : 'login'),
     is_paid: app.is_paid,

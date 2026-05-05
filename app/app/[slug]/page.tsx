@@ -20,7 +20,7 @@ export default async function AppDetailPage({ params }: { params: Promise<{ slug
   const supabase = createAdminClient()
   const { data: app, error } = await supabase
     .from('apps')
-    .select('id,name,slug,description,version,platform,category_id,download_permission,is_paid,price_cents,currency,logo_url,published,app_categories(name,icon),app_links(id,name,input_url,file_size_bytes,charge_traffic,sort_order)')
+    .select('id,name,slug,description,version,platform,category_id,download_permission,is_paid,price_cents,currency,logo_url,developer_name,developer_avatar_url,published,app_categories(name,icon),app_links(id,name,input_url,file_size_bytes,charge_traffic,sort_order)')
     .eq('slug', slug)
     .maybeSingle()
 
@@ -67,6 +67,15 @@ export default async function AppDetailPage({ params }: { params: Promise<{ slug
                 </span>
               </div>
               <h1 className="text-4xl font-semibold tracking-tight text-slate-950">{app.name}</h1>
+              <div className="mt-4 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-slate-100 text-sm font-semibold text-slate-700">
+                  {app.developer_avatar_url ? <img src={app.developer_avatar_url} alt="" className="h-full w-full object-cover" /> : (app.developer_name ?? app.name).slice(0, 1)}
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-slate-900">{app.developer_name ?? '开发者'}</p>
+                  <p className="text-xs text-slate-500">发布者信息</p>
+                </div>
+              </div>
               <p className="mt-3 text-base text-slate-500">
                 版本 {app.version ?? '未知'} · {permission === 'purchase' ? formatMoney(app.price_cents, app.currency ?? 'USD') : '免费'}
               </p>

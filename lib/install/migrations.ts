@@ -33,6 +33,10 @@ const migrations: Migration[] = [
   {
     filename: '0005_user_avatar.sql',
     readSql: () => readFile(new URL('../../supabase/migrations/0005_user_avatar.sql', import.meta.url), 'utf8')
+  },
+  {
+    filename: '0006_account_identity_publish_traffic.sql',
+    readSql: () => readFile(new URL('../../supabase/migrations/0006_account_identity_publish_traffic.sql', import.meta.url), 'utf8')
   }
 ]
 

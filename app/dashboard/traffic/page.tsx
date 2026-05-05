@@ -8,21 +8,29 @@ export default async function TrafficPage() {
   if (!user) redirect('/login')
 
   const supabase = createAdminClient()
-  const [{ data: balance }, { data: ledger, error }] = await Promise.all([
+  const [{ data: downloadBalance }, { data: distributionBalance }, { data: ledger, error }, { data: distributionLedger, error: distributionError }] = await Promise.all([
     supabase.from('user_traffic_balances').select('balance_bytes').eq('user_id', user.id).maybeSingle(),
+    supabase.from('user_distribution_traffic_balances').select('balance_bytes').eq('user_id', user.id).maybeSingle(),
     supabase.from('user_traffic_ledger')
       .select('id,delta_bytes,reason,created_at,payments(tx_hash),download_sessions(apps(name),app_links(name))')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
-      .limit(200)
+      .limit(100),
+    supabase.from('user_distribution_traffic_ledger')
+      .select('id,delta_bytes,reason,created_at,download_sessions(apps(name),app_links(name))')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(100)
   ])
 
   if (error) throw error
+  if (distributionError) throw distributionError
 
   const reasonLabels: Record<string, string> = {
     purchase_traffic: '购买流量',
     download: '下载扣减',
-    admin_adjust: '管理员调整'
+    admin_adjust: '管理员调整',
+    distribution_download: '分发扣减'
   }
 
   return (
@@ -32,12 +40,21 @@ export default async function TrafficPage() {
         <p className="mt-2 text-sm text-slate-500">查看流量收支明细记录。</p>
       </div>
 
-      <section className="card">
-        <p className="text-sm text-slate-500">当前余额</p>
-        <p className="mt-2 text-3xl font-semibold text-slate-900">{formatBytes(Number(balance?.balance_bytes ?? 0))}</p>
+      <section className="grid gap-4 md:grid-cols-2">
+        <div className="card">
+          <p className="text-sm text-slate-500">下载流量余额</p>
+          <p className="mt-2 text-3xl font-semibold text-slate-900">{formatBytes(Number(downloadBalance?.balance_bytes ?? 0))}</p>
+        </div>
+        <div className="card">
+          <p className="text-sm text-slate-500">分发流量余额</p>
+          <p className="mt-2 text-3xl font-semibold text-slate-900">{formatBytes(Number(distributionBalance?.balance_bytes ?? 0))}</p>
+        </div>
       </section>
 
       <section className="card overflow-hidden p-0">
+        <div className="border-b border-slate-200 px-5 py-4">
+          <h2 className="text-base font-semibold text-slate-900">下载流量明细</h2>
+        </div>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200 text-sm">
             <thead className="bg-slate-50 text-left text-slate-500">
@@ -79,6 +96,50 @@ export default async function TrafficPage() {
           </table>
         </div>
         {!ledger?.length ? <p className="px-5 py-8 text-sm text-slate-500">暂无流量记录。</p> : null}
+      </section>
+
+      <section className="card overflow-hidden p-0">
+        <div className="border-b border-slate-200 px-5 py-4">
+          <h2 className="text-base font-semibold text-slate-900">分发流量明细</h2>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-slate-200 text-sm">
+            <thead className="bg-slate-50 text-left text-slate-500">
+              <tr>
+                <th className="px-5 py-3 font-medium">时间</th>
+                <th className="px-5 py-3 font-medium">类型</th>
+                <th className="px-5 py-3 font-medium">变动</th>
+                <th className="px-5 py-3 font-medium">详情</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200 bg-white text-slate-700">
+              {distributionLedger?.map((entry) => {
+                const session = Array.isArray(entry.download_sessions) ? entry.download_sessions[0] : entry.download_sessions
+                const sessionApp = session ? (Array.isArray(session.apps) ? session.apps[0] : session.apps) : null
+                const sessionLink = session ? (Array.isArray(session.app_links) ? session.app_links[0] : session.app_links) : null
+
+                return (
+                  <tr key={entry.id}>
+                    <td className="px-5 py-4 text-slate-500">{new Date(entry.created_at).toLocaleString()}</td>
+                    <td className="px-5 py-4">
+                      <span className={entry.delta_bytes > 0
+                        ? 'rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700'
+                        : 'rounded-full bg-rose-50 px-3 py-1 text-xs font-medium text-rose-700'
+                      }>{reasonLabels[entry.reason] ?? entry.reason}</span>
+                    </td>
+                    <td className={`px-5 py-4 font-medium ${entry.delta_bytes > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                      {entry.delta_bytes > 0 ? '+' : ''}{formatBytes(Number(entry.delta_bytes))}
+                    </td>
+                    <td className="px-5 py-4 text-xs text-slate-500">
+                      {sessionApp ? `${sessionApp.name} · ${sessionLink?.name ?? ''}` : ''}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+        {!distributionLedger?.length ? <p className="px-5 py-8 text-sm text-slate-500">暂无分发记录。</p> : null}
       </section>
     </div>
   )

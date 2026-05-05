@@ -9,7 +9,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 
   const { data: link, error } = await supabase
     .from('app_links')
-    .select('id,name,input_url,file_size_bytes,charge_traffic,apps(id,name,is_paid,download_permission,published)')
+    .select('id,name,input_url,file_size_bytes,charge_traffic,apps(id,name,is_paid,download_permission,published,created_by)')
     .eq('id', linkId)
     .maybeSingle()
 
@@ -20,6 +20,19 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 
   const permission = appRecord.download_permission ?? (appRecord.is_paid ? 'purchase' : 'login')
   const user = await getCurrentStoreUser()
+  const fileSize = Number(link.file_size_bytes ?? 0)
+  const shouldChargeDistribution = Boolean(appRecord.created_by && link.charge_traffic && fileSize > 0)
+  let distributionBytesToCharge = 0
+
+  if (shouldChargeDistribution) {
+    const { data: publisher } = await supabase
+      .from('store_users')
+      .select('id,distribution_charge_threshold_bytes')
+      .eq('id', appRecord.created_by)
+      .maybeSingle()
+    const threshold = Number(publisher?.distribution_charge_threshold_bytes ?? 1073741824)
+    distributionBytesToCharge = fileSize > threshold ? fileSize : 0
+  }
 
   if (permission !== 'public' && !user) {
     return NextResponse.redirect(new URL('/login', _request.url), 302)
@@ -47,6 +60,17 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     }
   }
 
+  if (distributionBytesToCharge > 0 && appRecord.created_by) {
+    const { data: balance } = await supabase
+      .from('user_distribution_traffic_balances')
+      .select('balance_bytes')
+      .eq('user_id', appRecord.created_by)
+      .maybeSingle()
+    if (Number(balance?.balance_bytes ?? 0) < distributionBytesToCharge) {
+      return new NextResponse('应用分发流量不足，请先补充分发额度', { status: 402 })
+    }
+  }
+
   const signed = await makeSignedDownloadUrl(link.input_url)
   const { data: session, error: sessionError } = user
     ? await supabase
@@ -57,6 +81,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
           app_link_id: link.id,
           status: 'issued',
           bytes_charged: bytesToCharge,
+          distribution_bytes_charged: distributionBytesToCharge,
           link_kind: signed.kind,
           openlist_path: signed.openlistPath,
           expires_at: signed.expiresAt?.toISOString() ?? null
@@ -67,18 +92,26 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 
   if (sessionError) return new NextResponse(sessionError.message, { status: 500 })
 
-  if (bytesToCharge > 0 && user) {
+  if (user || distributionBytesToCharge > 0) {
     const { data: deducted, error: deductError } = await supabase
-      .rpc('deduct_traffic', {
-        p_user_id: user.id,
-        p_bytes: bytesToCharge,
-        p_reason: 'download',
-        p_download_session_id: session?.id
+      .rpc('deduct_download_and_distribution_traffic', {
+        p_user_id: user?.id ?? appRecord.created_by,
+        p_download_bytes: bytesToCharge,
+        p_distribution_user_id: distributionBytesToCharge > 0 ? appRecord.created_by : null,
+        p_distribution_bytes: distributionBytesToCharge,
+        p_download_session_id: session?.id ?? null
       })
       .single()
 
     if (deductError) return new NextResponse(deductError.message, { status: 500 })
-    if (!deducted) return new NextResponse('剩余流量不足，请先充值套餐', { status: 402 })
+    if (!deducted) {
+      return new NextResponse(
+        distributionBytesToCharge > 0 && appRecord.created_by
+          ? '应用分发流量不足，请先补充分发额度'
+          : '剩余流量不足，请先充值套餐',
+        { status: 402 }
+      )
+    }
   }
 
   return NextResponse.redirect(signed.url, 302)
