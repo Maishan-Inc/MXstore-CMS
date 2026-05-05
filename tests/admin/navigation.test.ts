@@ -13,6 +13,8 @@ describe('admin navigation helpers', () => {
       '/admin',
       '/admin/apps',
       '/admin/download-links',
+      '/admin/settings/domains',
+      '/admin/settings/packages',
       '/admin/orders',
       '/admin/users',
       '/admin/statistics',
