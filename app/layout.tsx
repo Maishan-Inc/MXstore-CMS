@@ -14,6 +14,7 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const headerList = await headers()
   const pathname = headerList.get('x-pathname') ?? ''
+  const isHomePage = pathname === '/'
   const isInstallPage = pathname === '/install' || pathname.startsWith('/install/')
   const isLoginPage = pathname === '/login'
 
@@ -27,6 +28,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   }
 
   if (isLoginPage) {
+    return (
+      <html lang="zh-CN">
+        <body>
+          <WalletProvider>{children}</WalletProvider>
+        </body>
+      </html>
+    )
+  }
+
+  if (isHomePage) {
     return (
       <html lang="zh-CN">
         <body>
