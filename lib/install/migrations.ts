@@ -39,8 +39,13 @@ const migrations: Migration[] = [
 const lockKey = 9_457_301_042
 let autoMigrationPromise: Promise<MigrationResult | null> | null = null
 
+function isBuildPhase() {
+  return process.env.NEXT_PHASE === 'phase-production-build' || process.env.npm_lifecycle_event === 'build'
+}
+
 export async function ensureLatestMigrations(databaseUrl = process.env.SUPABASE_DB_URL): Promise<MigrationResult | null> {
   if (process.env.MXSTORE_AUTO_MIGRATE === 'false') return null
+  if (isBuildPhase()) return null
   if (!databaseUrl) return null
 
   autoMigrationPromise ??= applyInstallMigrations(databaseUrl)
