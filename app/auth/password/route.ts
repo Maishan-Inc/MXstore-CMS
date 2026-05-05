@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { createClient } from '@/lib/supabase/server'
+import { createRouteClient } from '@/lib/supabase/route'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getNextRouteForUser } from '@/lib/account'
 
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const supabase = await createClient()
+  const { supabase, applyAuthCookies } = createRouteClient(request)
   let { data, error } = await supabase.auth.signInWithPassword(parsed.data)
 
   if (error || !data.user) {
@@ -72,8 +72,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: '账户资料同步失败，请重试' }, { status: 500 })
   }
 
-  return NextResponse.json({
+  return applyAuthCookies(NextResponse.json({
     ok: true,
     next: storeUser ? getNextRouteForUser(storeUser) : '/dashboard'
-  })
+  }))
 }

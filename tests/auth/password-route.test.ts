@@ -63,8 +63,14 @@ function createMockSupabase({
 
 async function postPasswordLogin(body: unknown, supabase = createMockSupabase()) {
   vi.resetModules()
-  vi.doMock('@/lib/supabase/server', () => ({
-    createClient: vi.fn().mockResolvedValue(supabase)
+  vi.doMock('@/lib/supabase/route', () => ({
+    createRouteClient: vi.fn().mockReturnValue({
+      supabase,
+      applyAuthCookies: (response: Response) => {
+        response.headers.append('set-cookie', 'sb-test-auth-token=session; Path=/; HttpOnly')
+        return response
+      }
+    })
   }))
   vi.doMock('@/lib/supabase/admin', () => ({
     createAdminClient: vi.fn().mockReturnValue(supabase)
@@ -104,6 +110,7 @@ describe('password login route', () => {
     })
     expect(supabase.mocks.createUser).not.toHaveBeenCalled()
     expect(response.status).toBe(200)
+    expect(response.headers.get('set-cookie')).toContain('sb-test-auth-token=session')
     await expect(response.json()).resolves.toEqual({ ok: true, next: '/dashboard' })
   })
 
