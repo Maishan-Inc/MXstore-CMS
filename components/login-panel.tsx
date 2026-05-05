@@ -38,15 +38,17 @@ type VisualLoginOption =
     }
 
 type VisualProviderId =
-  | 'tronlink'
-  | 'binance-wallet'
-  | 'metamask'
-  | 'trust-wallet'
-  | 'okx-wallet'
-  | 'tokenpocket'
-  | 'github'
-  | 'google'
-  | 'maishan'
+  string
+
+type RemoteLoginProvider = {
+  id: string
+  provider_type: 'wallet' | 'oauth' | 'password'
+  label: string
+  button_text: string
+  provider: string | null
+  connector_name: string | null
+  icon_url: string | null
+}
 
 const visualLoginOptions: VisualLoginOption[] = [
   {
@@ -122,6 +124,39 @@ const visualLoginOptions: VisualLoginOption[] = [
   }
 ]
 
+function remoteProviderToOption(provider: RemoteLoginProvider): VisualLoginOption | null {
+  if (provider.provider_type === 'wallet') {
+    return {
+      type: 'wallet',
+      id: provider.id === 'metamask' ? 'metamask' : 'walletconnect',
+      visualId: provider.id,
+      label: provider.label,
+      buttonText: provider.button_text,
+      connectorName: provider.connector_name ?? provider.label
+    }
+  }
+
+  if (provider.provider_type === 'oauth') {
+    const oauthProvider = provider.provider === 'google' ? 'google' : 'github'
+    return {
+      type: 'oauth',
+      id: oauthProvider,
+      visualId: provider.id,
+      label: provider.label,
+      buttonText: provider.button_text,
+      href: `/auth/oauth?provider=${oauthProvider}`
+    }
+  }
+
+  return {
+    type: 'password',
+    id: 'maishan',
+    visualId: provider.id,
+    label: provider.label,
+    buttonText: provider.button_text
+  }
+}
+
 function connectorDisplayName(connector: Connector) {
   const rkConnector = connector as RkConnector
   return rkConnector.rkDetails?.name ?? connector.name
@@ -134,6 +169,7 @@ function connectorIconSource(connector: Connector) {
 export function LoginPanel() {
   const router = useRouter()
   const [mode, setMode] = useState<'providers' | 'password'>('providers')
+  const [loginOptions, setLoginOptions] = useState<VisualLoginOption[]>(visualLoginOptions)
   const [walletIcons, setWalletIcons] = useState<Record<string, string>>({})
   const [walletError, setWalletError] = useState<string | null>(null)
   const [walletLoadingId, setWalletLoadingId] = useState<VisualProviderId | null>(null)
@@ -153,7 +189,7 @@ export function LoginPanel() {
     let cancelled = false
 
     async function loadIcons() {
-      const walletOptions = visualLoginOptions.filter((option): option is WalletLoginOption & { visualId: VisualProviderId } => option.type === 'wallet')
+      const walletOptions = loginOptions.filter((option): option is WalletLoginOption & { visualId: VisualProviderId } => option.type === 'wallet')
       const entries = await Promise.all(walletOptions.map(async (option) => {
         const connector = connectorsByName.get(option.connectorName)
         const iconSource = connector ? connectorIconSource(connector) : undefined
@@ -173,7 +209,30 @@ export function LoginPanel() {
     return () => {
       cancelled = true
     }
-  }, [connectorsByName])
+  }, [connectorsByName, loginOptions])
+
+  useEffect(() => {
+    let cancelled = false
+    async function loadLoginOptions() {
+      const res = await fetch('/api/login-providers')
+      if (!res.ok) return
+      const providers = await res.json() as RemoteLoginProvider[]
+      const mapped = providers.map(remoteProviderToOption).filter((option): option is VisualLoginOption => !!option)
+      const customIcons = providers.reduce<Record<string, string>>((icons, provider) => {
+        if (provider.icon_url) icons[provider.id] = provider.icon_url
+        return icons
+      }, {})
+      if (!cancelled && mapped.length) {
+        setLoginOptions(mapped)
+        setWalletIcons((current) => ({ ...current, ...customIcons }))
+      }
+    }
+
+    void loadLoginOptions()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   async function finishWalletLogin(addressToSign: string, chainId: number) {
     const nonceRes = await fetch('/api/auth/siwe/nonce')
@@ -258,15 +317,15 @@ export function LoginPanel() {
   }
 
   return (
-    <section className="mx-auto min-h-[844px] w-full max-w-[622px] rounded-[20px] border border-[#d9e0eb] bg-white px-[55px] pb-[31px] pt-[34px] shadow-[0_12px_30px_rgba(15,23,42,0.14)]">
-      <div className="mb-[26px] text-center">
-        <h1 className="text-[36px] font-semibold leading-[1.2] tracking-normal text-[#071638]">登录 MXStore</h1>
+    <section className="mx-auto w-full max-w-[500px] rounded-[18px] border border-[#d9e0eb] bg-white px-9 py-8 shadow-[0_12px_30px_rgba(15,23,42,0.12)]">
+      <div className="mb-6 text-center">
+        <h1 className="text-[30px] font-semibold leading-[1.2] tracking-normal text-[#071638]">登录 MXStore</h1>
       </div>
 
       {mode === 'providers' ? (
         <div>
-          <div className="space-y-[10px]">
-          {visualLoginOptions.map((option) => {
+          <div className="space-y-2.5">
+          {loginOptions.map((option) => {
             if (option.type === 'oauth') {
               return (
                 <Link key={option.visualId} href={option.href} className="login-provider-button">
@@ -312,29 +371,29 @@ export function LoginPanel() {
 
           {walletError ? <p className="mt-3 text-center text-sm text-rose-600">{walletError}</p> : null}
 
-          <div className="mt-[22px] grid grid-cols-[1fr_auto_1fr] items-center gap-[24px]">
+          <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
             <span className="h-px bg-[#dce2ec]" />
-            <button type="button" onClick={() => setMode('password')} className="text-[20px] font-normal leading-none tracking-normal text-[#63708a] hover:text-[#071638]">
+            <button type="button" onClick={() => setMode('password')} className="text-sm font-medium leading-none tracking-normal text-[#63708a] hover:text-[#071638]">
               使用账户密码登录
             </button>
             <span className="h-px bg-[#dce2ec]" />
           </div>
 
-          <p className="mt-[30px] text-center text-[16px] leading-none tracking-normal text-[#65718a]">
+          <p className="mt-6 text-center text-sm leading-none tracking-normal text-[#65718a]">
             登录即表示你同意 <Link href="/terms" className="font-medium text-[#0069ff] hover:text-[#0054cc]">《用户协议》</Link>
             <span> 与 </span>
             <Link href="/privacy" className="font-medium text-[#0069ff] hover:text-[#0054cc]">《隐私政策》</Link>
           </p>
         </div>
       ) : (
-        <form onSubmit={loginWithPassword} className="space-y-4">
+        <form onSubmit={loginWithPassword} className="space-y-3">
           <label className="block">
             <span className="label">邮箱</span>
-            <input name="email" type="email" autoComplete="email" required className="input rounded-xl" />
+            <input name="email" type="email" autoComplete="email" required className="input h-11 rounded-xl" />
           </label>
           <label className="block">
             <span className="label">密码</span>
-            <input name="password" type="password" autoComplete="current-password" required minLength={8} className="input rounded-xl" />
+            <input name="password" type="password" autoComplete="current-password" required minLength={8} className="input h-11 rounded-xl" />
           </label>
 
           {passwordError ? <p className="text-sm text-rose-600">{passwordError}</p> : null}
@@ -356,7 +415,7 @@ export function LoginPanel() {
 }
 
 function ProviderIcon({ id, src }: { id: VisualProviderId; src?: string }) {
-  if (src) return <img src={src} alt="" className="h-[34px] w-[34px] rounded-[6px]" aria-hidden="true" />
+  if (src) return <img src={src} alt="" className="h-7 w-7 rounded-[6px]" aria-hidden="true" />
   if (id === 'tronlink') return <TronLinkIcon />
   if (id === 'binance-wallet') return <BinanceIcon />
   if (id === 'metamask') return <MetaMaskIcon />

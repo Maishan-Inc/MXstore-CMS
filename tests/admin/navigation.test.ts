@@ -12,6 +12,8 @@ describe('admin navigation helpers', () => {
     expect(adminNavigationItems.map((item) => item.href)).toEqual([
       '/admin',
       '/admin/apps',
+      '/admin/categories',
+      '/admin/banners',
       '/admin/download-links',
       '/admin/settings/domains',
       '/admin/settings/packages',

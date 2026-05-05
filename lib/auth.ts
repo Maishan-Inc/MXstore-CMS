@@ -12,6 +12,8 @@ export type StoreUser = {
   email: string | null
   wallet_address: string | null
   auth_user_id: string | null
+  avatar_url: string | null
+  avatar_source: 'none' | 'oauth' | 'custom'
 }
 
 type WalletSession = {
@@ -36,7 +38,7 @@ export async function getCurrentStoreUser(): Promise<StoreUser | null> {
         },
         { onConflict: 'auth_user_id' }
       )
-      .select('id,role,email,wallet_address,auth_user_id')
+      .select('id,role,email,wallet_address,auth_user_id,avatar_url,avatar_source')
       .single()
     if (error) throw error
     return data as StoreUser
@@ -48,7 +50,7 @@ export async function getCurrentStoreUser(): Promise<StoreUser | null> {
 
   const { data, error } = await admin
     .from('store_users')
-    .select('id,role,email,wallet_address,auth_user_id')
+    .select('id,role,email,wallet_address,auth_user_id,avatar_url,avatar_source')
     .eq('id', walletSession.userId)
     .maybeSingle()
   if (error) throw error

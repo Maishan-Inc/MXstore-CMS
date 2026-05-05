@@ -25,10 +25,32 @@ const migrations: Migration[] = [
   {
     filename: '0003_system_settings.sql',
     readSql: () => readFile(new URL('../../supabase/migrations/0003_system_settings.sql', import.meta.url), 'utf8')
+  },
+  {
+    filename: '0004_store_content_management.sql',
+    readSql: () => readFile(new URL('../../supabase/migrations/0004_store_content_management.sql', import.meta.url), 'utf8')
+  },
+  {
+    filename: '0005_user_avatar.sql',
+    readSql: () => readFile(new URL('../../supabase/migrations/0005_user_avatar.sql', import.meta.url), 'utf8')
   }
 ]
 
 const lockKey = 9_457_301_042
+let autoMigrationPromise: Promise<MigrationResult | null> | null = null
+
+export async function ensureLatestMigrations(databaseUrl = process.env.SUPABASE_DB_URL): Promise<MigrationResult | null> {
+  if (process.env.MXSTORE_AUTO_MIGRATE === 'false') return null
+  if (!databaseUrl) return null
+
+  autoMigrationPromise ??= applyInstallMigrations(databaseUrl)
+    .catch((error) => {
+      autoMigrationPromise = null
+      throw error
+    })
+
+  return autoMigrationPromise
+}
 
 export async function applyInstallMigrations(databaseUrl = process.env.SUPABASE_DB_URL): Promise<MigrationResult> {
   if (!databaseUrl) {

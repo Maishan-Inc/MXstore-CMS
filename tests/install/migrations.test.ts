@@ -5,7 +5,9 @@ const originalEnv = { ...process.env }
 const sqlFiles: Record<string, string> = {
   '0001_schema.sql': 'create table if not exists public.store_users (id uuid);',
   '0002_atomic_deduction.sql': 'create or replace function public.test_fn() returns void language plpgsql as $$ begin null; end; $$;',
-  '0003_system_settings.sql': 'create table if not exists public.system_settings (key text primary key);'
+  '0003_system_settings.sql': 'create table if not exists public.system_settings (key text primary key);',
+  '0004_store_content_management.sql': 'create table if not exists public.app_categories (id uuid);',
+  '0005_user_avatar.sql': 'alter table public.store_users add column if not exists avatar_url text;'
 }
 
 type QueryCall = { text: string; params?: unknown[] }
@@ -71,7 +73,13 @@ describe('install migrations', () => {
 
     const result = await applyInstallMigrations()
 
-    expect(result.applied).toEqual(['0001_schema.sql', '0002_atomic_deduction.sql', '0003_system_settings.sql'])
+    expect(result.applied).toEqual([
+      '0001_schema.sql',
+      '0002_atomic_deduction.sql',
+      '0003_system_settings.sql',
+      '0004_store_content_management.sql',
+      '0005_user_avatar.sql'
+    ])
     const executedSql = queries.map((query) => query.text)
     const migrationIndexes = Object.values(sqlFiles).map((sql) => executedSql.indexOf(sql))
     expect(migrationIndexes.every((index) => index >= 0)).toBe(true)
@@ -88,7 +96,13 @@ describe('install migrations', () => {
     const result = await applyInstallMigrations()
 
     expect(result.applied).toEqual([])
-    expect(result.skipped).toEqual(['0001_schema.sql', '0002_atomic_deduction.sql', '0003_system_settings.sql'])
+    expect(result.skipped).toEqual([
+      '0001_schema.sql',
+      '0002_atomic_deduction.sql',
+      '0003_system_settings.sql',
+      '0004_store_content_management.sql',
+      '0005_user_avatar.sql'
+    ])
   })
 
   test('fails on checksum mismatch', async () => {

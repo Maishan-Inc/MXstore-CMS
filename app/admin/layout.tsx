@@ -33,7 +33,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                 <span className="hidden h-9 w-px bg-slate-200 md:block" />
                 <div className="flex items-center gap-3">
                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-200 text-sm font-semibold text-slate-700">
-                    管
+                    {user?.avatar_url ? <img src={user.avatar_url} alt="" className="h-full w-full rounded-full object-cover" /> : '管'}
                   </div>
                   <div className="min-w-0">
                     <p className="max-w-40 truncate text-sm font-semibold text-slate-900">{accountName}</p>

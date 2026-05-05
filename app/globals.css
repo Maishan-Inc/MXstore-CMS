@@ -108,15 +108,15 @@ a:hover {
 
 .login-provider-button {
   display: grid;
-  grid-template-columns: 56px minmax(0, 1fr) 56px;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
   align-items: center;
   width: 100%;
-  height: 60px;
+  height: 48px;
   border-radius: 10px;
   border: 1px solid #dce2ec;
   background-color: white;
-  padding: 0 17px;
-  font-size: 22px;
+  padding: 0 14px;
+  font-size: 16px;
   font-weight: 500;
   line-height: 1;
   letter-spacing: 0;

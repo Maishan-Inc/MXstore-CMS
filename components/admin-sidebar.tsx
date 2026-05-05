@@ -6,6 +6,7 @@ import {
   CreditCard,
   Globe2,
   Grid2X2,
+  Image,
   Link2,
   Settings,
   Users,
@@ -16,6 +17,8 @@ import { adminNavigationItems } from '@/lib/admin/navigation'
 const icons: Record<string, LucideIcon> = {
   'layout-dashboard': Grid2X2,
   package: Box,
+  box: Box,
+  image: Image,
   link: Link2,
   globe: Globe2,
   clock: Clock3,

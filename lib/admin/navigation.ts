@@ -1,6 +1,8 @@
 export const adminNavigationItems = [
   { href: '/admin', label: '仪表盘', icon: 'layout-dashboard' },
   { href: '/admin/apps', label: '应用管理', icon: 'package' },
+  { href: '/admin/categories', label: '分类管理', icon: 'box' },
+  { href: '/admin/banners', label: '首页轮播图', icon: 'image' },
   { href: '/admin/download-links', label: '下载链接', icon: 'link' },
   { href: '/admin/settings/domains', label: '域名与 Token', icon: 'globe' },
   { href: '/admin/settings/packages', label: '流量套餐', icon: 'clock' },

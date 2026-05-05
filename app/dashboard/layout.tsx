@@ -92,7 +92,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
                   <ChevronDown className="h-4 w-4 text-slate-500" />
                 </div>
                 <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-100 text-base font-semibold text-blue-700">
-                  {compactAccount(user).slice(0, 1).toUpperCase()}
+                  {user?.avatar_url ? <img src={user.avatar_url} alt="" className="h-full w-full rounded-full object-cover" /> : compactAccount(user).slice(0, 1).toUpperCase()}
                 </div>
                 <ChevronDown className="h-4 w-4 text-slate-500" />
               </div>

@@ -4,26 +4,26 @@ import type { ReactNode } from 'react'
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen bg-white px-6 py-12">
-      <div className="mx-auto grid min-h-[calc(100vh-6rem)] w-full max-w-[1242px] items-center gap-14 lg:grid-cols-[560px_622px]">
-        <section className="hidden h-[620px] flex-col justify-start lg:flex">
-          <div className="flex items-center gap-10">
-            <div className="flex h-[109px] w-[114px] items-center justify-center rounded-[16px] border border-slate-200 bg-white shadow-[0_18px_34px_rgba(15,23,42,0.12)]">
+    <div className="min-h-screen bg-white px-6 py-8">
+      <div className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-[1080px] items-center gap-10 lg:grid-cols-[480px_500px]">
+        <section className="hidden h-[560px] flex-col justify-start lg:flex">
+          <div className="flex items-center gap-7">
+            <div className="flex h-[88px] w-[92px] items-center justify-center rounded-[16px] border border-slate-200 bg-white shadow-[0_18px_34px_rgba(15,23,42,0.12)]">
               <MxLogoMark />
             </div>
-            <p className="text-[56px] font-semibold leading-none tracking-normal text-[#071638]">MXStore</p>
+            <p className="text-[48px] font-semibold leading-none tracking-normal text-[#071638]">MXStore</p>
           </div>
 
-          <div className="mt-[42px]">
-            <h1 className="text-[34px] font-semibold leading-tight tracking-normal text-[#071638]">安全分发你的数字应用</h1>
-            <p className="mt-[24px] max-w-[520px] text-[20px] leading-[1.6] tracking-normal text-[#66728a]">
+          <div className="mt-[34px]">
+            <h1 className="text-[30px] font-semibold leading-tight tracking-normal text-[#071638]">安全分发你的数字应用</h1>
+            <p className="mt-[20px] max-w-[480px] text-[18px] leading-[1.6] tracking-normal text-[#66728a]">
               MXStore 是面向开发者与团队的数字应用分发平台，
               <br />
               专注于安全、可靠与高效的应用交付体验。
             </p>
           </div>
 
-          <div className="mt-[36px] space-y-[38px]">
+          <div className="mt-[32px] space-y-[30px]">
             <FeatureItem icon={<ShieldCheck className="h-7 w-7" strokeWidth={2.5} />} title="安全可靠" description="多重安全防护，保障应用与数据安全" />
             <FeatureItem icon={<Zap className="h-7 w-7" strokeWidth={2.5} />} title="高效分发" description="全球加速分发，快速触达你的用户" />
             <FeatureItem icon={<UsersRound className="h-7 w-7" strokeWidth={2.5} />} title="团队协作" description="精细化权限管理，提升团队协作效率" />
@@ -38,7 +38,7 @@ export default function LoginPage() {
 
 function MxLogoMark() {
   return (
-    <svg viewBox="0 0 72 72" className="h-[72px] w-[72px]" aria-hidden="true">
+    <svg viewBox="0 0 72 72" className="h-[60px] w-[60px]" aria-hidden="true">
       <defs>
         <linearGradient id="mx-login-logo-blue" x1="10" x2="52" y1="14" y2="60" gradientUnits="userSpaceOnUse">
           <stop stopColor="#004DFF" />

@@ -33,6 +33,20 @@ type StoreApp = {
   logo_url: string | null
 }
 
+type StoreCategory = {
+  name: string
+  slug: string
+  icon: string
+}
+
+type HomeBanner = {
+  title: string
+  subtitle: string | null
+  image_url: string | null
+  cta_label: string | null
+  cta_href: string | null
+}
+
 type DisplayApp = Pick<StoreApp, 'name' | 'slug' | 'logo_url'> & {
   icon: LucideIcon
   tone: string
@@ -50,6 +64,20 @@ const categories: Array<{ label: string; icon: LucideIcon; active?: boolean; div
   { label: '文档', icon: FileText },
   { label: '关于', icon: Info }
 ]
+
+const iconMap: Record<string, LucideIcon> = {
+  Box,
+  Code2,
+  Database,
+  FileText,
+  Info,
+  Search,
+  ShieldCheck,
+  Sparkles: Sparkle,
+  Sparkle,
+  Wallet,
+  Zap
+}
 
 const fallbackApps: DisplayApp[] = [
   { name: 'OpenList', slug: 'openlist', logo_url: null, icon: Search, tone: 'from-blue-500 to-blue-700' },
@@ -150,12 +178,25 @@ export default async function HomePage() {
     redirect('/install')
   }
 
-  const { data: apps, error } = await supabase
-    .from('apps')
-    .select('name,slug,description,version,is_paid,price_cents,currency,logo_url')
-    .eq('published', true)
-    .order('created_at', { ascending: false })
-    .limit(8)
+  const [{ data: apps, error }, { data: dbCategories }, { data: banners }] = await Promise.all([
+    supabase
+      .from('apps')
+      .select('name,slug,description,version,is_paid,price_cents,currency,logo_url')
+      .eq('published', true)
+      .order('created_at', { ascending: false })
+      .limit(8),
+    supabase
+      .from('app_categories')
+      .select('name,slug,icon')
+      .eq('enabled', true)
+      .order('sort_order', { ascending: true }),
+    supabase
+      .from('home_banners')
+      .select('title,subtitle,image_url,cta_label,cta_href')
+      .eq('enabled', true)
+      .order('sort_order', { ascending: true })
+      .limit(5)
+  ])
 
   if (error) throw error
 
@@ -168,6 +209,20 @@ export default async function HomePage() {
       tone: toneForIndex(index)
     }))
     : fallbackApps
+  const sidebarCategories: Array<{ label: string; icon: LucideIcon; active?: boolean; dividerBefore?: boolean }> = dbCategories?.length
+    ? dbCategories.map((category: StoreCategory, index: number) => ({
+        label: category.name,
+        icon: iconMap[category.icon] ?? Box,
+        active: index === 0
+      }))
+    : categories
+  const primaryBanner = (banners?.[0] as HomeBanner | undefined) ?? {
+    title: '发现优质应用',
+    subtitle: '为你的 Web3 体验加速',
+    image_url: null,
+    cta_label: '探索精选应用',
+    cta_href: '#featured-apps'
+  }
 
   return (
     <main className="min-h-screen bg-white text-slate-950">
@@ -189,7 +244,7 @@ export default async function HomePage() {
 
           <nav className="mt-8 flex gap-2 overflow-x-auto pb-2 md:mt-12 md:block md:space-y-2 md:overflow-visible md:pb-0">
             <p className="hidden px-3 pb-3 text-base font-semibold text-slate-500 md:block">分类</p>
-            {categories.map((item) => {
+            {sidebarCategories.map((item) => {
               const Icon = item.icon
               return (
                 <div key={item.label} className={item.dividerBefore ? 'md:border-t md:border-slate-200 md:pt-6' : undefined}>
@@ -240,23 +295,29 @@ export default async function HomePage() {
                 <Sparkle className="h-5 w-5" />
                 精选推荐
               </div>
-              <h1 className="mt-7 text-5xl font-black leading-[1.08] text-slate-950 md:text-7xl">发现优质应用</h1>
-              <p className="mt-6 text-2xl font-medium text-slate-500 md:text-3xl">为你的 Web3 体验加速</p>
+              <h1 className="mt-7 text-5xl font-black leading-[1.08] text-slate-950 md:text-7xl">{primaryBanner.title}</h1>
+              <p className="mt-6 text-2xl font-medium text-slate-500 md:text-3xl">{primaryBanner.subtitle ?? '为你的 Web3 体验加速'}</p>
               <Link
-                href="#featured-apps"
+                href={primaryBanner.cta_href ?? '#featured-apps'}
                 className="mt-9 inline-flex h-16 w-fit items-center justify-center rounded-xl bg-blue-600 px-12 text-xl font-bold text-white shadow-[0_18px_35px_rgb(37_99_235_/_0.26)] transition hover:bg-blue-700"
               >
-                探索精选应用
+                {primaryBanner.cta_label ?? '探索精选应用'}
               </Link>
             </div>
 
-            <HeroVisual />
+            {primaryBanner.image_url ? (
+              <div className="absolute inset-y-0 right-0 hidden w-[54%] items-center justify-center p-12 md:flex">
+                <img src={primaryBanner.image_url} alt="" className="max-h-[460px] rounded-[28px] object-cover shadow-[0_30px_70px_rgb(37_99_235_/_0.22)]" />
+              </div>
+            ) : (
+              <HeroVisual />
+            )}
 
             <div className="absolute bottom-7 left-1/2 flex -translate-x-1/2 gap-3">
-              {[0, 1, 2, 3, 4].map((item) => (
+              {(banners?.length ? banners : [0, 1, 2, 3, 4]).map((item, index) => (
                 <span
-                  key={item}
-                  className={`h-3 w-3 rounded-full ${item === 0 ? 'bg-blue-600' : 'bg-slate-300'}`}
+                  key={typeof item === 'number' ? item : item.title}
+                  className={`h-3 w-3 rounded-full ${index === 0 ? 'bg-blue-600' : 'bg-slate-300'}`}
                 />
               ))}
             </div>

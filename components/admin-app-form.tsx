@@ -8,6 +8,7 @@ type AdminAppFormProps = {
   mode?: 'create' | 'edit'
   appId?: string
   initialValues?: AdminAppFormValues
+  categories?: Array<{ id: string; name: string }>
 }
 
 function makeNewLink(index: number): AdminAppLinkInput {
@@ -21,7 +22,7 @@ function makeNewLink(index: number): AdminAppLinkInput {
   }
 }
 
-export function AdminAppForm({ mode = 'create', appId, initialValues }: AdminAppFormProps) {
+export function AdminAppForm({ mode = 'create', appId, initialValues, categories = [] }: AdminAppFormProps) {
   const router = useRouter()
   const defaults = useMemo(() => initialValues ?? appFormDefaults(), [initialValues])
   const [links, setLinks] = useState<AdminAppLinkInput[]>(defaults.links)
@@ -46,7 +47,9 @@ export function AdminAppForm({ mode = 'create', appId, initialValues }: AdminApp
       version: formData.get('version'),
       platform: formData.get('platform'),
       logo_url: formData.get('logo_url'),
-      is_paid: formData.get('is_paid') === 'on',
+      category_id: String(formData.get('category_id') ?? ''),
+      download_permission: String(formData.get('download_permission') || 'login'),
+      is_paid: formData.get('download_permission') === 'purchase',
       price_cents: Number(formData.get('price_cents') || 0),
       currency: String(formData.get('currency') || 'USD'),
       published: formData.get('published') === 'on',
@@ -97,6 +100,15 @@ export function AdminAppForm({ mode = 'create', appId, initialValues }: AdminApp
           <input name="platform" defaultValue={defaults.platform} className="input" placeholder="Windows / macOS / Android / Video" />
         </label>
         <label>
+          <span className="label">应用分类</span>
+          <select name="category_id" defaultValue={defaults.category_id} className="input">
+            <option value="">不选择分类</option>
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>{category.name}</option>
+            ))}
+          </select>
+        </label>
+        <label>
           <span className="label">Logo URL</span>
           <input name="logo_url" defaultValue={defaults.logo_url} className="input" placeholder="https://..." />
         </label>
@@ -108,8 +120,13 @@ export function AdminAppForm({ mode = 'create', appId, initialValues }: AdminApp
           <span className="label">描述</span>
           <textarea name="description" defaultValue={defaults.description} className="input min-h-28" placeholder="应用介绍、更新日志、安装说明" />
         </label>
-        <label className="flex items-center gap-2 text-sm text-slate-600">
-          <input name="is_paid" type="checkbox" defaultChecked={defaults.is_paid} /> 下载前需要购买/授权
+        <label>
+          <span className="label">下载权限</span>
+          <select name="download_permission" defaultValue={defaults.download_permission} className="input">
+            <option value="public">免登录下载</option>
+            <option value="login">登录后下载</option>
+            <option value="purchase">购买/授权后下载</option>
+          </select>
         </label>
         <label>
           <span className="label">价格，单位：分</span>

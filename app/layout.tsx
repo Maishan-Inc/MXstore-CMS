@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { headers } from 'next/headers'
 import { WalletProvider } from '@/components/wallet-provider'
 import { getCurrentStoreUser } from '@/lib/auth'
+import { ensureLatestMigrations } from '@/lib/install/migrations'
 
 export const metadata: Metadata = {
   title: 'MXStore',
@@ -12,6 +13,8 @@ export const metadata: Metadata = {
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  await ensureLatestMigrations()
+
   const headerList = await headers()
   const pathname = headerList.get('x-pathname') ?? ''
   const isHomePage = pathname === '/'
