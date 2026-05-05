@@ -5,28 +5,69 @@ type MockStoreUser = {
   role: 'admin' | 'user'
 }
 
-function createMockSupabase(storeUser: MockStoreUser | null, authError: { message: string } | null = null) {
-  return {
-    auth: {
-      signInWithPassword: vi.fn().mockResolvedValue({
-        data: authError ? { user: null } : { user: { id: 'auth-user-1' } },
-        error: authError
-      })
-    },
-    from: vi.fn(() => ({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          maybeSingle: vi.fn().mockResolvedValue({ data: storeUser, error: null })
-        }))
-      }))
-    }))
+type MockAuthUser = {
+  id: string
+  email?: string
+  user_metadata?: {
+    name?: string
   }
 }
 
-async function postPasswordLogin(body: unknown, supabase = createMockSupabase({ role: 'user' })) {
+type MockAuthError = {
+  message: string
+}
+
+type MockSignInResult = {
+  data: { user: MockAuthUser | null }
+  error: MockAuthError | null
+}
+
+function createMockSupabase({
+  signInResults = [{
+    data: { user: { id: 'auth-user-1', email: 'user@example.com' } },
+    error: null
+  }],
+  createUserResult = { data: { user: { id: 'auth-created' } }, error: null },
+  storeUser = { role: 'user' }
+}: {
+  signInResults?: MockSignInResult[]
+  createUserResult?: { data: { user: { id: string } | null }; error: MockAuthError | null }
+  storeUser?: MockStoreUser
+} = {}) {
+  const signInWithPassword = vi.fn()
+  signInResults.forEach((result) => {
+    signInWithPassword.mockResolvedValueOnce(result)
+  })
+
+  const createUser = vi.fn().mockResolvedValue(createUserResult)
+  const single = vi.fn().mockResolvedValue({ data: storeUser, error: null })
+  const select = vi.fn(() => ({ single }))
+  const upsert = vi.fn(() => ({ select }))
+  const from = vi.fn(() => ({ upsert }))
+
+  return {
+    auth: {
+      signInWithPassword,
+      admin: {
+        createUser
+      }
+    },
+    from,
+    mocks: {
+      createUser,
+      from,
+      upsert
+    }
+  }
+}
+
+async function postPasswordLogin(body: unknown, supabase = createMockSupabase()) {
   vi.resetModules()
   vi.doMock('@/lib/supabase/server', () => ({
     createClient: vi.fn().mockResolvedValue(supabase)
+  }))
+  vi.doMock('@/lib/supabase/admin', () => ({
+    createAdminClient: vi.fn().mockReturnValue(supabase)
   }))
 
   const { POST } = await import('@/app/auth/password/route')
@@ -54,13 +95,33 @@ describe('password login route', () => {
   })
 
   test('signs in with Supabase password auth and redirects users to dashboard', async () => {
-    const supabase = createMockSupabase({ role: 'user' })
+    const supabase = createMockSupabase()
     const response = await postPasswordLogin({ email: 'USER@Example.com', password: 'admin1234' }, supabase)
 
     expect(supabase.auth.signInWithPassword).toHaveBeenCalledWith({
       email: 'user@example.com',
       password: 'admin1234'
     })
+    expect(supabase.mocks.createUser).not.toHaveBeenCalled()
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toEqual({ ok: true, next: '/dashboard' })
+  })
+
+  test('auto-registers missing password users before redirecting', async () => {
+    const supabase = createMockSupabase({
+      signInResults: [
+        { data: { user: null }, error: { message: 'Invalid login credentials' } },
+        { data: { user: { id: 'auth-created', email: 'new@example.com' } }, error: null }
+      ]
+    })
+    const response = await postPasswordLogin({ email: 'new@example.com', password: 'newpass123' }, supabase)
+
+    expect(supabase.mocks.createUser).toHaveBeenCalledWith({
+      email: 'new@example.com',
+      password: 'newpass123',
+      email_confirm: true
+    })
+    expect(supabase.auth.signInWithPassword).toHaveBeenCalledTimes(2)
     expect(response.status).toBe(200)
     await expect(response.json()).resolves.toEqual({ ok: true, next: '/dashboard' })
   })
@@ -68,16 +129,24 @@ describe('password login route', () => {
   test('redirects admin password users to admin console', async () => {
     const response = await postPasswordLogin(
       { email: 'admin@example.com', password: 'admin1234' },
-      createMockSupabase({ role: 'admin' })
+      createMockSupabase({ storeUser: { role: 'admin' } })
     )
 
     await expect(response.json()).resolves.toEqual({ ok: true, next: '/admin' })
   })
 
-  test('returns a safe error when Supabase rejects credentials', async () => {
+  test('returns a safe error when credentials belong to an existing account', async () => {
     const response = await postPasswordLogin(
       { email: 'user@example.com', password: 'wrongpass' },
-      createMockSupabase(null, { message: 'Invalid login credentials' })
+      createMockSupabase({
+        signInResults: [
+          { data: { user: null }, error: { message: 'Invalid login credentials' } }
+        ],
+        createUserResult: {
+          data: { user: null },
+          error: { message: 'A user with this email address has already been registered' }
+        }
+      })
     )
 
     expect(response.status).toBe(401)

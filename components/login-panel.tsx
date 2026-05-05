@@ -5,6 +5,7 @@ import type { Connector } from 'wagmi'
 import { SiweMessage } from 'siwe'
 import { useRouter } from 'next/navigation'
 import { FormEvent, useEffect, useMemo, useState } from 'react'
+import { CheckCircle2 } from 'lucide-react'
 import { useAccount, useChainId, useConnect, useDisconnect, useSignMessage } from 'wagmi'
 import { oauthLoginOptions, type WalletLoginOption } from '@/lib/login-options'
 
@@ -48,6 +49,14 @@ type RemoteLoginProvider = {
   provider: string | null
   connector_name: string | null
   icon_url: string | null
+}
+
+type AuthOverlayState = {
+  visualId: VisualProviderId
+  label: string
+  iconSrc?: string
+  status: 'loading' | 'success'
+  message: string
 }
 
 const visualLoginOptions: VisualLoginOption[] = [
@@ -166,15 +175,41 @@ function connectorIconSource(connector: Connector) {
   return (connector as RkConnector).rkDetails?.iconUrl ?? connector.icon
 }
 
-function isInjectedWalletName(name: string) {
+function canUseInjectedFallback(name: string) {
   const normalized = name.toLowerCase()
   return normalized.includes('metamask') ||
-    normalized.includes('okx') ||
-    normalized.includes('trust') ||
-    normalized.includes('tokenpocket') ||
-    normalized.includes('binance') ||
     normalized.includes('browser wallet') ||
     normalized.includes('injected')
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms))
+}
+
+function friendlyAuthError(error: unknown) {
+  const raw = error instanceof Error ? error.message : String(error)
+  const message = raw.toLowerCase()
+
+  if (message.includes('user rejected') || message.includes('rejected the request') || message.includes('user denied') || message.includes('4001')) {
+    return '你已取消授权'
+  }
+  if (message.includes('already pending') || message.includes('request already')) {
+    return '钱包请求正在处理中，请先在钱包里完成或取消'
+  }
+  if (message.includes('connector') && message.includes('unavailable')) {
+    return '当前钱包不可用，请确认插件已安装并解锁'
+  }
+  if (message.includes('nonce')) {
+    return '登录校验生成失败，请重试'
+  }
+  if (message.includes('signature') || message.includes('sign')) {
+    return '签名失败，请重新授权'
+  }
+  if (message.includes('network') || message.includes('fetch')) {
+    return '网络连接异常，请稍后重试'
+  }
+
+  return raw.length > 48 ? '登录失败，请重试' : raw || '登录失败，请重试'
 }
 
 export function LoginPanel() {
@@ -184,8 +219,10 @@ export function LoginPanel() {
   const [walletIcons, setWalletIcons] = useState<Record<string, string>>({})
   const [walletError, setWalletError] = useState<string | null>(null)
   const [walletLoadingId, setWalletLoadingId] = useState<VisualProviderId | null>(null)
+  const [authOverlay, setAuthOverlay] = useState<AuthOverlayState | null>(null)
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [passwordLoading, setPasswordLoading] = useState(false)
+  const [passwordAgreementAccepted, setPasswordAgreementAccepted] = useState(false)
   const { address, connector: activeConnector, isConnected } = useAccount()
   const currentChainId = useChainId()
   const { connectors, connectAsync } = useConnect()
@@ -206,7 +243,7 @@ export function LoginPanel() {
     async function loadIcons() {
       const walletOptions = loginOptions.filter((option): option is WalletLoginOption & { visualId: VisualProviderId } => option.type === 'wallet')
       const entries = await Promise.all(walletOptions.map(async (option) => {
-        const connector = connectorsByName.get(option.connectorName) ?? (isInjectedWalletName(option.connectorName) ? injectedConnector : undefined)
+        const connector = connectorsByName.get(option.connectorName) ?? (canUseInjectedFallback(option.connectorName) ? injectedConnector : undefined)
         const iconSource = connector ? connectorIconSource(connector) : undefined
         const src = typeof iconSource === 'function' ? await iconSource() : iconSource
         return [option.visualId, src] as const
@@ -273,19 +310,28 @@ export function LoginPanel() {
     })
     if (!verifyRes.ok) throw new Error(await verifyRes.text())
     const data = await verifyRes.json() as { role?: 'admin' | 'user' }
+    setAuthOverlay((current) => current ? { ...current, status: 'success', message: '授权成功' } : current)
+    await sleep(700)
     router.push(data.role === 'admin' ? '/admin' : '/dashboard')
     router.refresh()
   }
 
   async function loginWithWallet(option: WalletLoginOption & { visualId: VisualProviderId }) {
-    const connector = connectorsByName.get(option.connectorName) ?? (isInjectedWalletName(option.connectorName) ? injectedConnector : undefined)
+    const connector = connectorsByName.get(option.connectorName) ?? (canUseInjectedFallback(option.connectorName) ? injectedConnector : undefined)
     if (!connector) {
-      setWalletError(`${option.label} 钱包连接器不可用`)
+      setWalletError(`${option.label} 钱包未安装或未启用`)
       return
     }
 
     setWalletLoadingId(option.visualId)
     setWalletError(null)
+    setAuthOverlay({
+      visualId: option.visualId,
+      label: option.label,
+      iconSrc: walletIcons[option.visualId],
+      status: 'loading',
+      message: '请在钱包中确认授权'
+    })
     try {
       if (isConnected && activeConnector && activeConnector.uid !== connector.uid) {
         await disconnectAsync()
@@ -298,16 +344,36 @@ export function LoginPanel() {
         await finishWalletLogin(result.accounts[0], result.chainId)
       }
     } catch (error) {
-      setWalletError(error instanceof Error ? error.message : '钱包登录失败')
+      setWalletError(friendlyAuthError(error))
+      setAuthOverlay(null)
     } finally {
       setWalletLoadingId(null)
     }
+  }
+
+  async function loginWithOauth(option: Extract<VisualLoginOption, { type: 'oauth' }>) {
+    setWalletError(null)
+    setAuthOverlay({
+      visualId: option.visualId,
+      label: option.label,
+      iconSrc: walletIcons[option.visualId],
+      status: 'loading',
+      message: '正在跳转到授权页面'
+    })
+    await sleep(350)
+    window.location.href = option.href
   }
 
   async function loginWithPassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setPasswordLoading(true)
     setPasswordError(null)
+
+    if (!passwordAgreementAccepted) {
+      setPasswordLoading(false)
+      setPasswordError('请先勾选用户协议和隐私政策')
+      return
+    }
 
     const formData = new FormData(event.currentTarget)
     try {
@@ -332,9 +398,11 @@ export function LoginPanel() {
   }
 
   return (
+    <>
+    {authOverlay ? <AuthOverlay state={authOverlay} /> : null}
     <section className="mx-auto w-full max-w-[500px] rounded-[18px] border border-[#d9e0eb] bg-white px-9 py-8 shadow-[0_12px_30px_rgba(15,23,42,0.12)]">
       <div className="mb-6 text-center">
-        <h1 className="text-[30px] font-semibold leading-[1.2] tracking-normal text-[#071638]">登录 MXStore</h1>
+        <h1 className="text-[30px] font-semibold leading-[1.2] tracking-normal text-[#071638]">注册/登录 MXStore</h1>
       </div>
 
       {mode === 'providers' ? (
@@ -342,16 +410,18 @@ export function LoginPanel() {
           <div className="space-y-2.5">
           {loginOptions.map((option) => {
             if (option.type === 'oauth') {
+              const actionText = toRegisterLoginText(option.buttonText)
               return (
-                <Link key={option.visualId} href={option.href} className="login-provider-button">
-                  <ProviderIcon id={option.visualId} />
-                  <span className="text-center">{option.buttonText}</span>
+                <button key={option.visualId} type="button" onClick={() => void loginWithOauth(option)} className="login-provider-button">
+                  <ProviderIcon id={option.visualId} src={walletIcons[option.visualId]} />
+                  <span className="text-center">{actionText}</span>
                   <span aria-hidden="true" />
-                </Link>
+                </button>
               )
             }
 
             if (option.type === 'password') {
+              const actionText = toRegisterLoginText(option.buttonText)
               return (
                 <button
                   key={option.visualId}
@@ -360,12 +430,13 @@ export function LoginPanel() {
                   className="login-provider-button"
                 >
                   <ProviderIcon id={option.visualId} />
-                  <span className="text-center">{option.buttonText}</span>
+                  <span className="text-center">{actionText}</span>
                   <span aria-hidden="true" />
                 </button>
               )
             }
 
+            const actionText = toRegisterLoginText(option.buttonText)
             return (
               <button
                 key={option.visualId}
@@ -376,7 +447,7 @@ export function LoginPanel() {
               >
                 <ProviderIcon id={option.visualId} src={walletIcons[option.visualId]} />
                 <span className="text-center">
-                  {walletLoadingId === option.visualId ? '等待钱包确认...' : option.buttonText}
+                  {walletLoadingId === option.visualId ? '等待钱包确认...' : actionText}
                 </span>
                 <span aria-hidden="true" />
               </button>
@@ -386,10 +457,10 @@ export function LoginPanel() {
 
           {walletError ? <p className="mt-3 text-center text-sm text-rose-600">{walletError}</p> : null}
 
-          <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+          <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-5">
             <span className="h-px bg-[#dce2ec]" />
             <button type="button" onClick={() => setMode('password')} className="text-sm font-medium leading-none tracking-normal text-[#63708a] hover:text-[#071638]">
-              使用账户密码登录
+              使用账户密码注册/登录
             </button>
             <span className="h-px bg-[#dce2ec]" />
           </div>
@@ -411,21 +482,64 @@ export function LoginPanel() {
             <input name="password" type="password" autoComplete="current-password" required minLength={8} className="input h-11 rounded-xl" />
           </label>
 
+          <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm leading-6 text-slate-600">
+            <input
+              type="checkbox"
+              checked={passwordAgreementAccepted}
+              onChange={(event) => setPasswordAgreementAccepted(event.target.checked)}
+              className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600"
+            />
+            <span>
+              我已阅读并同意
+              <Link href="/terms" className="font-medium text-[#0069ff] hover:text-[#0054cc]">《用户协议》</Link>
+              <span> 与 </span>
+              <Link href="/privacy" className="font-medium text-[#0069ff] hover:text-[#0054cc]">《隐私政策》</Link>
+            </span>
+          </label>
+
           {passwordError ? <p className="text-sm text-rose-600">{passwordError}</p> : null}
 
-          <button type="submit" disabled={passwordLoading} className="btn w-full rounded-xl">
-            {passwordLoading ? '登录中...' : '登录'}
+          <button type="submit" disabled={passwordLoading || !passwordAgreementAccepted} className="btn w-full rounded-xl">
+            {passwordLoading ? '注册/登录中...' : '注册/登录'}
           </button>
           <button
             type="button"
             onClick={() => setMode('providers')}
             className="mx-auto block text-sm font-medium text-slate-500 hover:text-slate-900"
           >
-            返回钱包和第三方登录
+            返回注册/登录方式
           </button>
         </form>
       )}
     </section>
+    </>
+  )
+}
+
+function AuthOverlay({ state }: { state: AuthOverlayState }) {
+  const success = state.status === 'success'
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/65 px-4 backdrop-blur-sm">
+      <div className="rounded-3xl border border-slate-200 bg-white px-9 py-8 text-center shadow-[0_24px_70px_rgba(15,23,42,0.18)]">
+        <div className="mx-auto mb-5 flex h-28 w-28 items-center justify-center">
+          <div className="relative h-24 w-24 rounded-3xl">
+            <div className={success
+              ? 'absolute inset-0 rounded-3xl bg-emerald-100'
+              : 'absolute inset-0 animate-spin rounded-3xl bg-[conic-gradient(from_0deg,#2563eb,#93c5fd,#e0e7ff,#2563eb)]'}
+            />
+            <div className="absolute inset-[3px] flex items-center justify-center rounded-[21px] bg-white">
+              <div className={success ? 'absolute opacity-0 transition-all duration-500 scale-75' : 'absolute opacity-100 transition-all duration-500 scale-100'}>
+                <ProviderIcon id={state.visualId} src={state.iconSrc} />
+              </div>
+              <CheckCircle2 className={success ? 'h-12 w-12 scale-100 text-emerald-600 opacity-100 transition-all duration-500' : 'h-12 w-12 scale-75 text-emerald-600 opacity-0 transition-all duration-500'} strokeWidth={2.4} />
+            </div>
+          </div>
+        </div>
+        <p className="text-base font-semibold text-slate-950">{state.label}</p>
+        <p className="mt-2 text-sm text-slate-500">{state.message}</p>
+      </div>
+    </div>
   )
 }
 
@@ -440,6 +554,10 @@ function ProviderIcon({ id, src }: { id: VisualProviderId; src?: string }) {
   if (id === 'github') return <GitHubIcon />
   if (id === 'google') return <GoogleIcon />
   return <MaishanIcon />
+}
+
+function toRegisterLoginText(text: string) {
+  return text.replace(/登录$/, '注册/登录')
 }
 
 function TronLinkIcon() {
