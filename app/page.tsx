@@ -260,7 +260,7 @@ export default async function HomePage() {
           </Link>
         </aside>
 
-        <section className="min-w-0 bg-[#f7f8f2] px-4 py-6 sm:px-6 md:px-8 md:py-8 2xl:px-12">
+        <section className="flex min-h-screen min-w-0 flex-col bg-[#f7f8f2] px-4 py-6 sm:px-6 md:px-8 md:py-8 2xl:px-12">
           <div className="relative min-h-[420px] w-full overflow-hidden rounded-[40px] border border-[#0e0f0c]/10 bg-white wise-ring md:min-h-[610px] 2xl:min-h-[680px]">
             <button
               type="button"
@@ -332,7 +332,7 @@ export default async function HomePage() {
             )}
           </div>
 
-          <footer className="mt-12 border-t border-[#0e0f0c]/10 py-6 text-center text-sm font-semibold text-[#454745]">
+          <footer className="mt-auto border-t border-[#0e0f0c]/10 py-6 text-center text-sm font-semibold text-[#454745]">
             Copyright © 2026 Maishan Inc. All rights reserved MXStore
           </footer>
         </section>

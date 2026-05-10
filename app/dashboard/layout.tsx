@@ -96,7 +96,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </div>
         </aside>
 
-        <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 flex-1 flex-col">
           <header className="sticky top-0 z-20 border-b border-[#0e0f0c]/10 bg-white/90 px-6 py-7 backdrop-blur lg:px-14">
             <div className="flex items-center justify-between gap-6">
               <h1 className="text-2xl font-black tracking-normal text-[#0e0f0c]">欢迎回来</h1>
@@ -113,10 +113,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
               </div>
             </div>
           </header>
-          <main className="px-6 pb-10 pt-6 lg:px-14">{children}</main>
+          <main className="flex-1 px-6 pb-10 pt-6 lg:px-14">{children}</main>
           <footer className="border-t border-[#0e0f0c]/10 bg-white px-6 py-8 text-sm font-semibold text-[#868685] lg:px-14">
             <div className="mx-auto flex max-w-5xl flex-col items-center justify-center gap-5 sm:flex-row">
-              <span>© 2024 MXStore，保留所有权利。</span>
+              <span>Copyright © 2026 Maishan Inc. All rights reserved MXStore</span>
               <Link href="/terms" className="text-slate-500 hover:text-slate-900">服务条款</Link>
               <Link href="/privacy" className="text-slate-500 hover:text-slate-900">隐私政策</Link>
             </div>
