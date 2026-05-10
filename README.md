@@ -161,6 +161,7 @@ tests/                # 单元测试
 - [AGENTS.md](AGENTS.md) — 开发规范
 - [CLAUDE.md](CLAUDE.md) — Claude 开发指南
 - [tasks/](tasks/) — 任务清单与设计文档
+- [DESIGN.md](DESIGN.md) — 严格按照主题配色来开发和UI布局 
 
 ## 许可
 未经Maishan Inc.或中国大陆代理公司运行禁止使用此项目进行任何的商业行盈利.

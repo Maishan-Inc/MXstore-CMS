@@ -9,6 +9,7 @@ import {
   Image as ImageIcon,
   Link2,
   Settings,
+  ShieldCheck,
   Users,
   type LucideIcon
 } from 'lucide-react'
@@ -25,6 +26,7 @@ const icons: Record<string, LucideIcon> = {
   clock: Clock3,
   'credit-card': CreditCard,
   users: Users,
+  shield: ShieldCheck,
   'bar-chart': BarChart3,
   settings: Settings
 }

@@ -25,6 +25,9 @@ export type AccountSummary = {
   identity_plan_expires_at: string | null
   kyc_status: KycStatus
   kyc_note: string | null
+  email_verified_at: string | null
+  identity_public_email_verified_at: string | null
+  identity_private_email_verified_at: string | null
 }
 
 const accountRank: Record<AccountType, number> = {

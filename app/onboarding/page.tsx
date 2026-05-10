@@ -32,7 +32,7 @@ export default async function OnboardingPage() {
       {user.account_type === 'enterprise' && user.enterprise_certification_status !== 'verified' ? (
         <section className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm leading-7 text-amber-900">
           <h2 className="text-base font-semibold text-amber-950">企业认证处理中</h2>
-          <p className="mt-2">请向客户服务支持提交营业执照、社会信用代码、公司名称、联系人信息等材料。材料不完整时，客服可能会继续要求你补充。</p>
+          <p className="mt-2">请到用户中心的“邮箱与 KYC”页面提交营业执照、社会信用代码、公司名称、联系人信息等材料。材料不完整时，管理员可能会继续要求你补充。</p>
           <p className="mt-2">审核通过后，企业身份会恢复为可用状态。</p>
         </section>
       ) : null}

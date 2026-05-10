@@ -1,4 +1,4 @@
-export const APP_DETAIL_COLUMNS = 'official_url,screenshot_urls,feature_highlights,changelog,release_date,language,license_name,system_requirements,rating_score,rating_count,download_count'
+export const APP_DETAIL_COLUMNS = 'official_url,screenshot_urls,feature_highlights,changelog,release_date,language,license_name,system_requirements,rating_score,rating_count,download_count,show_on_recommended,recommendation_heat'
 
 const DETAIL_FIELD_NAMES = [
   'official_url',
@@ -11,7 +11,9 @@ const DETAIL_FIELD_NAMES = [
   'system_requirements',
   'rating_score',
   'rating_count',
-  'download_count'
+  'download_count',
+  'show_on_recommended',
+  'recommendation_heat'
 ]
 
 type SupabaseLikeError = {
@@ -31,6 +33,8 @@ type AppDetailDefaults = {
   rating_score: number
   rating_count: number
   download_count: number
+  show_on_recommended: boolean
+  recommendation_heat: number
 }
 
 export function isMissingAppDetailColumn(error: unknown) {
@@ -53,6 +57,8 @@ export function withAppDetailDefaults<T extends Record<string, unknown>>(app: T 
     rating_score: 4.8,
     rating_count: 0,
     download_count: 0,
+    show_on_recommended: false,
+    recommendation_heat: 0,
     ...app
   } as T & AppDetailDefaults
 }

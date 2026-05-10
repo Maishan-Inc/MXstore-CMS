@@ -9,21 +9,33 @@ export default async function AdminBannersPage() {
   if (user.role !== 'admin') redirect('/dashboard')
 
   const supabase = createAdminClient()
-  const { data, error } = await supabase
-    .from('home_banners')
-    .select('id,title,subtitle,image_url,cta_label,cta_href,sort_order,enabled')
-    .order('sort_order', { ascending: true })
+  const [{ data, error }, { data: apps }, { data: categories }] = await Promise.all([
+    supabase
+      .from('home_banners')
+      .select('id,title,subtitle,image_url,image_openlist_domain,cta_label,cta_href,placement,category_id,app_id,sort_order,enabled')
+      .order('placement', { ascending: true })
+      .order('sort_order', { ascending: true }),
+    supabase
+      .from('apps')
+      .select('id,name,slug,logo_url')
+      .eq('published', true)
+      .order('name', { ascending: true }),
+    supabase
+      .from('app_categories')
+      .select('id,name')
+      .eq('enabled', true)
+      .order('sort_order', { ascending: true })
+  ])
 
   if (error) throw error
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-900">首页轮播图</h1>
-        <p className="mt-2 text-sm text-slate-500">新增和修改首页首屏轮播内容，支持图片 URL 或本地上传。</p>
+        <h1 className="text-2xl font-semibold text-slate-900">轮播图</h1>
+        <p className="mt-2 text-sm text-slate-500">为推荐页和每个分类页单独配置轮播图，可绑定应用、上传图片或填写 OpenList 图片 URL。</p>
       </div>
-      <BannerManager initialItems={data ?? []} />
+      <BannerManager initialItems={data ?? []} apps={apps ?? []} categories={categories ?? []} />
     </div>
   )
 }
-

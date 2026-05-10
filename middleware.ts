@@ -6,11 +6,20 @@ const PUBLIC_PATHS = [
   '/api/install',
   '/login',
   '/auth',
-  '/api/auth'
+  '/api/auth',
+  '/api/kyc/didit/webhook'
 ]
 
 function isPublicPath(pathname: string) {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
+}
+
+function nextWithPathname(request: NextRequest, pathname: string) {
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set('x-pathname', pathname)
+  const response = NextResponse.next({ request: { headers: requestHeaders } })
+  response.headers.set('x-pathname', pathname)
+  return { response, requestHeaders }
 }
 
 export async function middleware(request: NextRequest) {
@@ -18,8 +27,7 @@ export async function middleware(request: NextRequest) {
 
   // Always allow public paths
   if (isPublicPath(pathname)) {
-    const response = NextResponse.next({ request })
-    response.headers.set('x-pathname', pathname)
+    const { response } = nextWithPathname(request, pathname)
     return response
   }
 
@@ -29,8 +37,9 @@ export async function middleware(request: NextRequest) {
   }
 
   try {
-    let response = NextResponse.next({ request })
-    response.headers.set('x-pathname', pathname)
+    const next = nextWithPathname(request, pathname)
+    const { requestHeaders } = next
+    let response = next.response
 
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -42,7 +51,8 @@ export async function middleware(request: NextRequest) {
           },
           setAll(cookiesToSet) {
             cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-            response = NextResponse.next({ request })
+            response = NextResponse.next({ request: { headers: requestHeaders } })
+            response.headers.set('x-pathname', pathname)
             cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options))
           }
         }

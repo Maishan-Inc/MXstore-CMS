@@ -31,6 +31,16 @@ export default async function AdminSettingsPage() {
           <p className="mt-2 text-sm text-slate-500">配置快捷登录、OAuth、钱包连接器和登录按钮图标。</p>
         </Link>
 
+        <Link href="/admin/settings/email" className="card hover:border-blue-200">
+          <h2 className="text-lg font-semibold text-slate-900">邮箱系统</h2>
+          <p className="mt-2 text-sm text-slate-500">配置 SMTP 发信、验证码邮件和认证审核通知模板。</p>
+        </Link>
+
+        <Link href="/admin/settings/kyc" className="card hover:border-blue-200">
+          <h2 className="text-lg font-semibold text-slate-900">KYC 验证</h2>
+          <p className="mt-2 text-sm text-slate-500">配置 Didit.me KYC、企业营业执照上传和远程 S3 存储桶。</p>
+        </Link>
+
         <Link href="/admin/settings/footer" className="card hover:border-blue-200">
           <h2 className="text-lg font-semibold text-slate-900">底部栏设置</h2>
           <p className="mt-2 text-sm text-slate-500">配置前台底部栏版权、链接和社交媒体地址，可控制显示和隐藏。</p>

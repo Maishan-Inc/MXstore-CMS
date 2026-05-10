@@ -53,6 +53,14 @@ const migrations: Migration[] = [
   {
     filename: '0010_account_identity_membership.sql',
     readSql: () => readFile(new URL('../../supabase/migrations/0010_account_identity_membership.sql', import.meta.url), 'utf8')
+  },
+  {
+    filename: '0011_email_kyc_verification.sql',
+    readSql: () => readFile(new URL('../../supabase/migrations/0011_email_kyc_verification.sql', import.meta.url), 'utf8')
+  },
+  {
+    filename: '0012_home_recommendation_banners.sql',
+    readSql: () => readFile(new URL('../../supabase/migrations/0012_home_recommendation_banners.sql', import.meta.url), 'utf8')
   }
 ]
 

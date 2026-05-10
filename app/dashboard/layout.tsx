@@ -9,6 +9,7 @@ import {
   Grid2X2,
   Home,
   Package,
+  ShieldCheck,
   UploadCloud,
   Settings,
   Wallet,
@@ -24,6 +25,7 @@ const baseNavItems = [
   { href: '/dashboard/downloads', label: '下载记录', icon: Download },
   { href: '/dashboard/traffic', label: '流量余额', icon: Package },
   { href: '/dashboard/orders', label: '订单支付', icon: CreditCard },
+  { href: '/dashboard/verification', label: '邮箱与KYC', icon: ShieldCheck },
   { href: '/dashboard/settings', label: '钱包设置', icon: Wallet }
 ] satisfies Array<{ href: string; label: string; icon: LucideIcon }>
 

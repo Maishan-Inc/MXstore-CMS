@@ -25,10 +25,26 @@ type BannerItem = {
   title: string
   subtitle: string | null
   image_url: string | null
+  image_openlist_domain: string | null
   cta_label: string | null
   cta_href: string | null
+  placement: 'recommended' | 'category'
+  category_id: string | null
+  app_id: string | null
   sort_order: number
   enabled: boolean
+}
+
+type BannerAppOption = {
+  id: string
+  name: string
+  slug: string
+  logo_url: string | null
+}
+
+type BannerCategoryOption = {
+  id: string
+  name: string
 }
 
 type LoginProviderItem = {
@@ -202,8 +218,29 @@ export function CategoryManager({ initialItems }: { initialItems: CategoryItem[]
   )
 }
 
-export function BannerManager({ initialItems }: { initialItems: BannerItem[] }) {
-  const empty: BannerItem = { title: '', subtitle: '', image_url: '', cta_label: '查看详情', cta_href: '/', sort_order: 0, enabled: true }
+export function BannerManager({
+  initialItems,
+  apps,
+  categories
+}: {
+  initialItems: BannerItem[]
+  apps: BannerAppOption[]
+  categories: BannerCategoryOption[]
+}) {
+  const firstApp = apps[0]
+  const empty: BannerItem = {
+    title: '',
+    subtitle: '',
+    image_url: '',
+    image_openlist_domain: '',
+    cta_label: '查看详情',
+    cta_href: firstApp ? `/app/${firstApp.slug}` : '/',
+    placement: 'recommended',
+    category_id: null,
+    app_id: firstApp?.id ?? null,
+    sort_order: 0,
+    enabled: true
+  }
   const [items, setItems] = useState<BannerItem[]>(initialItems)
   const [draft, setDraft] = useState<BannerItem>(empty)
   const [error, setError] = useState<string | null>(null)
@@ -231,30 +268,107 @@ export function BannerManager({ initialItems }: { initialItems: BannerItem[] }) 
     }
   }
 
+  function applyApp(item: BannerItem, appId: string | null): BannerItem {
+    const app = apps.find((entry) => entry.id === appId)
+    if (!app) return { ...item, app_id: null }
+    return {
+      ...item,
+      app_id: app.id,
+      title: item.title || app.name,
+      cta_href: item.cta_href || `/app/${app.slug}`
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="card grid gap-4 lg:grid-cols-2">
+        <label>
+          <span className="label">展示位置</span>
+          <select
+            className="input"
+            value={draft.placement}
+            onChange={(e) => setDraft({
+              ...draft,
+              placement: e.target.value as BannerItem['placement'],
+              category_id: e.target.value === 'recommended' ? null : draft.category_id
+            })}
+          >
+            <option value="recommended">推荐页</option>
+            <option value="category">分类页</option>
+          </select>
+        </label>
+        <label>
+          <span className="label">分类页，推荐页留空</span>
+          <select
+            className="input"
+            value={draft.category_id ?? ''}
+            disabled={draft.placement === 'recommended'}
+            onChange={(e) => setDraft({ ...draft, category_id: e.target.value || null })}
+          >
+            <option value="">选择分类</option>
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>{category.name}</option>
+            ))}
+          </select>
+        </label>
+        <label className="lg:col-span-2">
+          <span className="label">绑定应用</span>
+          <select className="input" value={draft.app_id ?? ''} onChange={(e) => setDraft((current) => applyApp(current, e.target.value || null))}>
+            <option value="">不绑定应用</option>
+            {apps.map((app) => (
+              <option key={app.id} value={app.id}>{app.name} / {app.slug}</option>
+            ))}
+          </select>
+          <span className="mt-2 block text-xs text-slate-500">选择应用后，默认按钮链接会指向应用详情页。</span>
+        </label>
         <input className="input" placeholder="标题" value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} />
         <input className="input" placeholder="副标题" value={draft.subtitle ?? ''} onChange={(e) => setDraft({ ...draft, subtitle: e.target.value })} />
         <input className="input" placeholder="跳转按钮文字" value={draft.cta_label ?? ''} onChange={(e) => setDraft({ ...draft, cta_label: e.target.value })} />
         <input className="input" placeholder="跳转链接" value={draft.cta_href ?? ''} onChange={(e) => setDraft({ ...draft, cta_href: e.target.value })} />
         <input className="input" placeholder="图片 URL 或上传图片" value={draft.image_url ?? ''} onChange={(e) => setDraft({ ...draft, image_url: e.target.value })} />
+        <input className="input" placeholder="OpenList 图片域名，例如 oss-us-hk.smvapi.store" value={draft.image_openlist_domain ?? ''} onChange={(e) => setDraft({ ...draft, image_openlist_domain: e.target.value })} />
         <input className="input" type="file" accept="image/*" onChange={(e) => e.target.files?.[0] ? void upload(e.target.files[0], (url) => setDraft({ ...draft, image_url: url })) : undefined} />
+        <label className="flex items-center gap-2 text-sm font-semibold text-[#454745]">
+          <input type="checkbox" checked={draft.enabled} onChange={(e) => setDraft({ ...draft, enabled: e.target.checked })} />
+          启用
+        </label>
         <button onClick={() => void save(draft)} className="btn lg:w-fit">新增轮播图</button>
       </div>
       {error ? <p className="text-sm text-rose-600">{error}</p> : null}
       <div className="grid gap-4">
         {items.map((item, index) => (
-          <div key={item.id ?? index} className="card grid gap-4 lg:grid-cols-[160px_1fr_auto]">
+          <div key={item.id ?? index} className="card grid gap-4 lg:grid-cols-[180px_1fr_auto]">
             <div className="flex h-28 items-center justify-center overflow-hidden rounded-xl bg-slate-100 text-slate-400">
-              {item.image_url ? <img src={signedImageSrc(item.image_url) ?? item.image_url} alt="" className="h-full w-full object-cover" /> : <Image className="h-8 w-8" />}
+              {item.image_url ? <img src={signedImageSrc(item.image_url, item.image_openlist_domain) ?? item.image_url} alt="" className="h-full w-full object-cover" /> : <Image className="h-8 w-8" />}
             </div>
             <div className="grid gap-3 md:grid-cols-2">
+              <select className="input" value={item.placement} onChange={(e) => setItems((current) => current.map((entry, i) => i === index ? { ...entry, placement: e.target.value as BannerItem['placement'], category_id: e.target.value === 'recommended' ? null : entry.category_id } : entry))}>
+                <option value="recommended">推荐页</option>
+                <option value="category">分类页</option>
+              </select>
+              <select className="input" value={item.category_id ?? ''} disabled={item.placement === 'recommended'} onChange={(e) => setItems((current) => current.map((entry, i) => i === index ? { ...entry, category_id: e.target.value || null } : entry))}>
+                <option value="">选择分类</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>{category.name}</option>
+                ))}
+              </select>
+              <select className="input md:col-span-2" value={item.app_id ?? ''} onChange={(e) => setItems((current) => current.map((entry, i) => i === index ? applyApp(entry, e.target.value || null) : entry))}>
+                <option value="">不绑定应用</option>
+                {apps.map((app) => (
+                  <option key={app.id} value={app.id}>{app.name} / {app.slug}</option>
+                ))}
+              </select>
               <input className="input" value={item.title} onChange={(e) => setItems((current) => current.map((entry, i) => i === index ? { ...entry, title: e.target.value } : entry))} />
               <input className="input" value={item.subtitle ?? ''} onChange={(e) => setItems((current) => current.map((entry, i) => i === index ? { ...entry, subtitle: e.target.value } : entry))} />
               <input className="input" value={item.cta_label ?? ''} onChange={(e) => setItems((current) => current.map((entry, i) => i === index ? { ...entry, cta_label: e.target.value } : entry))} />
               <input className="input" value={item.cta_href ?? ''} onChange={(e) => setItems((current) => current.map((entry, i) => i === index ? { ...entry, cta_href: e.target.value } : entry))} />
-              <input className="input md:col-span-2" value={item.image_url ?? ''} onChange={(e) => setItems((current) => current.map((entry, i) => i === index ? { ...entry, image_url: e.target.value } : entry))} />
+              <input className="input md:col-span-2" value={item.image_url ?? ''} placeholder="图片 URL" onChange={(e) => setItems((current) => current.map((entry, i) => i === index ? { ...entry, image_url: e.target.value } : entry))} />
+              <input className="input" value={item.image_openlist_domain ?? ''} placeholder="OpenList 图片域名" onChange={(e) => setItems((current) => current.map((entry, i) => i === index ? { ...entry, image_openlist_domain: e.target.value } : entry))} />
+              <input className="input" type="number" value={item.sort_order} onChange={(e) => setItems((current) => current.map((entry, i) => i === index ? { ...entry, sort_order: Number(e.target.value) } : entry))} />
+              <label className="flex items-center gap-2 text-sm font-semibold text-[#454745]">
+                <input type="checkbox" checked={item.enabled} onChange={(e) => setItems((current) => current.map((entry, i) => i === index ? { ...entry, enabled: e.target.checked } : entry))} />
+                {item.enabled ? '启用' : '停用'}
+              </label>
             </div>
             <button onClick={() => void save(item)} className="btn-secondary h-fit">保存</button>
           </div>

@@ -8,10 +8,18 @@ const BannerSchema = z.object({
   title: z.string().min(1),
   subtitle: z.string().optional().nullable(),
   image_url: z.string().optional().nullable(),
+  image_openlist_domain: z.string().trim().optional().nullable(),
   cta_label: z.string().optional().nullable(),
   cta_href: z.string().optional().nullable(),
+  placement: z.enum(['recommended', 'category']).default('recommended'),
+  category_id: z.string().uuid().optional().nullable(),
+  app_id: z.string().uuid().optional().nullable(),
   sort_order: z.number().int().default(0),
   enabled: z.boolean().default(true)
+}).superRefine((value, ctx) => {
+  if (value.placement === 'category' && !value.category_id) {
+    ctx.addIssue({ code: 'custom', path: ['category_id'], message: '分类页轮播图必须选择分类' })
+  }
 })
 
 export async function GET() {
@@ -37,8 +45,12 @@ export async function POST(request: Request) {
       title: body.title,
       subtitle: body.subtitle || null,
       image_url: body.image_url || null,
+      image_openlist_domain: body.image_openlist_domain || null,
       cta_label: body.cta_label || null,
       cta_href: body.cta_href || null,
+      placement: body.placement,
+      category_id: body.placement === 'category' ? body.category_id : null,
+      app_id: body.app_id || null,
       sort_order: body.sort_order,
       enabled: body.enabled
     })
@@ -59,8 +71,12 @@ export async function PUT(request: Request) {
       title: body.title,
       subtitle: body.subtitle || null,
       image_url: body.image_url || null,
+      image_openlist_domain: body.image_openlist_domain || null,
       cta_label: body.cta_label || null,
       cta_href: body.cta_href || null,
+      placement: body.placement,
+      category_id: body.placement === 'category' ? body.category_id : null,
+      app_id: body.app_id || null,
       sort_order: body.sort_order,
       enabled: body.enabled,
       updated_at: new Date().toISOString()
@@ -72,4 +88,3 @@ export async function PUT(request: Request) {
   if (error) return new NextResponse(error.message, { status: 400 })
   return NextResponse.json(data)
 }
-

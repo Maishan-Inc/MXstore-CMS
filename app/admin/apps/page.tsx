@@ -12,7 +12,8 @@ export default async function AdminAppsPage() {
   const supabase = createAdminClient()
   const { data: apps } = await supabase
     .from('apps')
-    .select('id,name,slug,version,platform,published,is_paid,price_cents,currency,created_at,app_links(id)')
+    .select('id,name,slug,version,platform,published,is_paid,price_cents,currency,show_on_recommended,recommendation_heat,created_at,app_links(id)')
+    .order('recommendation_heat', { ascending: false })
     .order('created_at', { ascending: false })
 
   return (
@@ -34,6 +35,7 @@ export default async function AdminAppsPage() {
                 <th className="px-5 py-3 font-medium">版本 / 分类</th>
                 <th className="px-5 py-3 font-medium">价格</th>
                 <th className="px-5 py-3 font-medium">下载链接</th>
+                <th className="px-5 py-3 font-medium">推荐</th>
                 <th className="px-5 py-3 font-medium">状态</th>
                 <th className="px-5 py-3 font-medium">操作</th>
               </tr>
@@ -50,6 +52,11 @@ export default async function AdminAppsPage() {
                   <td className="px-5 py-4 text-slate-500">{app.version ?? '未设置'} · {app.platform ?? '未分类'}</td>
                   <td className="px-5 py-4 text-slate-500">{app.is_paid ? formatMoney(app.price_cents, app.currency ?? 'USD') : '免费'}</td>
                   <td className="px-5 py-4 text-slate-500">{app.app_links?.length ?? 0} 个</td>
+                  <td className="px-5 py-4">
+                    <span className={app.show_on_recommended ? 'rounded-full bg-[#e2f6d5] px-3 py-1 text-xs font-semibold text-[#163300]' : 'rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600'}>
+                      {app.show_on_recommended ? `热度 ${app.recommendation_heat}` : '未推荐'}
+                    </span>
+                  </td>
                   <td className="px-5 py-4">
                     <span className={app.published ? 'rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700' : 'rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600'}>
                       {app.published ? '已发布' : '草稿'}

@@ -8,7 +8,7 @@ import type { AccountType, EnterpriseCertificationStatus, IdentityPlanStatus, Id
 export const WALLET_SESSION_COOKIE = 'store_wallet_session'
 
 const STORE_USER_BASE_SELECT = 'id,role,email,display_name,wallet_address,auth_user_id'
-const STORE_USER_EXTENDED_SELECT = `${STORE_USER_BASE_SELECT},avatar_url,avatar_source,account_type,developer_name,developer_avatar_url,organization_name,enterprise_certification_status,enterprise_certification_note,team_plan_status,download_quota_bytes,distribution_quota_bytes,distribution_charge_threshold_bytes,identity_public_email,identity_private_email,identity_plan_tier,identity_plan_status,identity_plan_started_at,identity_plan_expires_at,kyc_status,kyc_note`
+const STORE_USER_EXTENDED_SELECT = `${STORE_USER_BASE_SELECT},avatar_url,avatar_source,account_type,developer_name,developer_avatar_url,organization_name,enterprise_certification_status,enterprise_certification_note,team_plan_status,download_quota_bytes,distribution_quota_bytes,distribution_charge_threshold_bytes,identity_public_email,identity_private_email,identity_plan_tier,identity_plan_status,identity_plan_started_at,identity_plan_expires_at,kyc_status,kyc_note,email_verified_at,identity_public_email_verified_at,identity_private_email_verified_at`
 
 export type StoreUser = {
   id: string
@@ -34,6 +34,9 @@ export type StoreUser = {
   identity_plan_expires_at: string | null
   kyc_status: KycStatus
   kyc_note: string | null
+  email_verified_at: string | null
+  identity_public_email_verified_at: string | null
+  identity_private_email_verified_at: string | null
   download_quota_bytes: number
   distribution_quota_bytes: number
   distribution_charge_threshold_bytes: number
@@ -87,6 +90,9 @@ function normalizeStoreUser(row: StoreUserRow | null): StoreUser | null {
     identity_plan_expires_at: row.identity_plan_expires_at ?? null,
     kyc_status: row.kyc_status ?? 'not_required',
     kyc_note: row.kyc_note ?? null,
+    email_verified_at: row.email_verified_at ?? null,
+    identity_public_email_verified_at: row.identity_public_email_verified_at ?? null,
+    identity_private_email_verified_at: row.identity_private_email_verified_at ?? null,
     download_quota_bytes: Number(row.download_quota_bytes ?? 0),
     distribution_quota_bytes: Number(row.distribution_quota_bytes ?? 0),
     distribution_charge_threshold_bytes: Number(row.distribution_charge_threshold_bytes ?? 1073741824)
@@ -113,6 +119,9 @@ function isMissingStoreUserProfileColumn(error: { message?: string } | null) {
     'identity_plan_expires_at',
     'kyc_status',
     'kyc_note',
+    'email_verified_at',
+    'identity_public_email_verified_at',
+    'identity_private_email_verified_at',
     'download_quota_bytes',
     'distribution_quota_bytes',
     'distribution_charge_threshold_bytes'

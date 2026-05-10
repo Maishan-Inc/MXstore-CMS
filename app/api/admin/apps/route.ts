@@ -42,6 +42,8 @@ const AppSchema = z.object({
   rating_score: z.number().min(0).max(5).default(4.8),
   rating_count: z.number().int().min(0).default(0),
   download_count: z.number().int().min(0).default(0),
+  show_on_recommended: z.boolean().default(false),
+  recommendation_heat: z.number().int().min(0).default(0),
   developer_name: z.string().trim().optional().nullable(),
   developer_avatar_url: z.string().trim().url().optional().or(z.literal('')).nullable(),
   category_id: z.string().uuid().optional().or(z.literal('')).nullable(),
@@ -51,6 +53,10 @@ const AppSchema = z.object({
   currency: z.string().trim().min(3).max(8).default('USD'),
   published: z.boolean().default(false),
   links: z.array(LinkSchema).min(1)
+}).superRefine((value, ctx) => {
+  if (value.show_on_recommended && value.recommendation_heat <= 0) {
+    ctx.addIssue({ code: 'custom', path: ['recommendation_heat'], message: '勾选推荐页显示时，推荐热度必须大于 0' })
+  }
 })
 
 async function buildLinks(appId: string, links: z.infer<typeof LinkSchema>[]) {
@@ -130,6 +136,8 @@ function buildAppPayload(body: z.infer<typeof AppSchema>, user: Awaited<ReturnTy
     rating_score: body.rating_score,
     rating_count: body.rating_count,
     download_count: body.download_count,
+    show_on_recommended: body.show_on_recommended,
+    recommendation_heat: body.show_on_recommended ? body.recommendation_heat : 0,
     category_id: body.category_id || null,
     download_permission: body.download_permission,
     is_paid: body.download_permission === 'purchase' || body.is_paid,
@@ -146,7 +154,8 @@ export async function GET() {
   const supabase = createAdminClient()
   const { data, error } = await supabase
     .from('apps')
-    .select('id,name,slug,version,platform,published,is_paid,price_cents,currency,created_at,app_links(id)')
+    .select('id,name,slug,version,platform,published,is_paid,price_cents,currency,show_on_recommended,recommendation_heat,created_at,app_links(id)')
+    .order('recommendation_heat', { ascending: false })
     .order('created_at', { ascending: false })
 
   if (error) return new NextResponse(error.message, { status: 500 })

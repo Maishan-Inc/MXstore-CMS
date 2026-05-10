@@ -28,6 +28,8 @@ export type AdminAppFormValues = {
   rating_score: number
   rating_count: number
   download_count: number
+  show_on_recommended: boolean
+  recommendation_heat: number
   developer_name: string
   developer_avatar_url: string
   category_id: string
@@ -57,6 +59,8 @@ type ExistingApp = {
   rating_score?: number | null
   rating_count?: number | null
   download_count?: number | null
+  show_on_recommended?: boolean | null
+  recommendation_heat?: number | null
   developer_name?: string | null
   developer_avatar_url?: string | null
   category_id?: string | null
@@ -94,6 +98,8 @@ export function appFormDefaults(): AdminAppFormValues {
     rating_score: 4.8,
     rating_count: 0,
     download_count: 0,
+    show_on_recommended: false,
+    recommendation_heat: 0,
     developer_name: '',
     developer_avatar_url: '',
     category_id: '',
@@ -135,6 +141,8 @@ export function normalizeAppPayload(app: ExistingApp): AdminAppFormValues {
     rating_score: Number(app.rating_score ?? 4.8),
     rating_count: Number(app.rating_count ?? 0),
     download_count: Number(app.download_count ?? 0),
+    show_on_recommended: Boolean(app.show_on_recommended),
+    recommendation_heat: Number(app.recommendation_heat ?? 0),
     developer_name: app.developer_name ?? '',
     developer_avatar_url: app.developer_avatar_url ?? '',
     category_id: app.category_id ?? '',

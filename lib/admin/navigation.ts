@@ -8,6 +8,7 @@ export const adminNavigationItems = [
   { href: '/admin/settings/packages', label: '流量套餐', icon: 'clock' },
   { href: '/admin/orders', label: '订单支付', icon: 'credit-card' },
   { href: '/admin/users', label: '用户管理', icon: 'users' },
+  { href: '/admin/settings/kyc', label: 'KYC 验证', icon: 'shield' },
   { href: '/admin/statistics', label: '数据统计', icon: 'bar-chart' },
   { href: '/admin/settings', label: '系统设置', icon: 'settings' }
 ]

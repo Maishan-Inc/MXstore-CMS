@@ -413,7 +413,7 @@ export function AccountIdentityPanel({ user, settings }: { user: AccountSummary;
       <OrganizationTierSection
         id="enterprise-plans"
         title="企业用户"
-        subtitle="企业用户需要选择 Plus 及以上套餐，并在 KYC 页面补充企业主体材料。文件上传和后台审核后续接入。"
+        subtitle="企业用户需要选择 Plus 及以上套餐，并在邮箱与 KYC 页面补充企业主体材料、营业执照和邮箱验证码。"
         identityType="enterprise"
         selectedTier={enterpriseTier}
         currentTier={user.account_type === 'enterprise' ? user.identity_plan_tier : undefined}
@@ -432,7 +432,7 @@ export function AccountIdentityPanel({ user, settings }: { user: AccountSummary;
       <OrganizationTierSection
         id="team-plans"
         title="团队工作室"
-        subtitle="团队工作室可选择 Free 起步，需填写公开邮箱、私密邮箱和团队名称。验证码与审核功能后续接入。"
+        subtitle="团队工作室可选择 Free 起步，需填写公开邮箱、私密邮箱和团队名称，并完成邮箱验证码与 KYC 审核。"
         identityType="team_studio"
         selectedTier={teamTier}
         currentTier={user.account_type === 'team_studio' ? user.identity_plan_tier : undefined}
@@ -656,7 +656,7 @@ function OrganizationTierSection({
               <div>
                 <h3 className="text-xl font-black text-[#0e0f0c]">{title}资料填写</h3>
                 <p className="mt-2 text-sm leading-6 text-[#868685]">
-                  当前选择：{selectedTier.toUpperCase()}，会员到期：{expiresAt.toLocaleDateString('zh-CN')}。提交后进入 KYC 待审核状态，付款、验证码、文件上传和后台审核后续接入。
+                  当前选择：{selectedTier.toUpperCase()}，会员到期：{expiresAt.toLocaleDateString('zh-CN')}。提交后进入 KYC 待审核状态，请到邮箱与 KYC 页面完成验证码和材料上传。
                 </p>
               </div>
               <span className="rounded-full bg-[#e2f6d5] px-4 py-2 text-sm font-black text-[rgb(22,51,0)]">KYC 待验证</span>
@@ -679,7 +679,7 @@ function OrganizationTierSection({
                 <div className="rounded-[18px] border border-dashed border-[#0e0f0c]/15 bg-[#f7f8f2] p-4 text-sm leading-6 text-[#5f625d] md:col-span-3">
                   <div className="flex items-start gap-3">
                     <Mail className="mt-0.5 h-5 w-5 text-[rgb(22,51,0)]" />
-                    <p>私密邮箱验证码功能待接入。当前先保存邮箱地址和团队名称，后续在此处补验证码发送与验证。</p>
+                    <p>提交后请到邮箱与 KYC 页面发送公开邮箱和私密邮箱验证码。</p>
                   </div>
                 </div>
               </div>
@@ -696,7 +696,7 @@ function OrganizationTierSection({
                 <div className="rounded-[18px] border border-dashed border-[#0e0f0c]/15 bg-[#f7f8f2] p-4 text-sm leading-6 text-[#5f625d] md:col-span-2">
                   <div className="flex items-start gap-3">
                     <LockKeyhole className="mt-0.5 h-5 w-5 text-[rgb(22,51,0)]" />
-                    <p>企业后续需要上传营业执照、身份证正面、身份证反面三张图片。文件上传与后台审核功能待接入。</p>
+                    <p>企业需要在邮箱与 KYC 页面上传营业执照，并等待管理员后台审核。</p>
                   </div>
                 </div>
               </div>

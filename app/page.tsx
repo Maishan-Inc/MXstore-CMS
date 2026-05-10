@@ -35,6 +35,8 @@ type StoreApp = {
   price_cents: number | null
   currency: string | null
   logo_url: string | null
+  show_on_recommended?: boolean
+  recommendation_heat?: number
 }
 
 type StoreCategory = {
@@ -47,6 +49,7 @@ type HomeBanner = {
   title: string
   subtitle: string | null
   image_url: string | null
+  image_openlist_domain?: string | null
   cta_label: string | null
   cta_href: string | null
 }
@@ -57,7 +60,8 @@ type DisplayApp = Pick<StoreApp, 'name' | 'slug' | 'logo_url'> & {
 }
 
 const categories: Array<{ label: string; icon: LucideIcon; active?: boolean; dividerBefore?: boolean }> = [
-  { label: '开发工具', icon: Code2, active: true },
+  { label: '推荐', icon: Star, active: true },
+  { label: '开发工具', icon: Code2 },
   { label: 'AI 应用', icon: Sparkle },
   { label: '钱包', icon: Wallet },
   { label: '安全', icon: ShieldCheck },
@@ -90,8 +94,8 @@ function toneForIndex(index: number) {
 
 function HeroVisual() {
   return (
-    <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[52%] items-center justify-center overflow-hidden p-10 lg:flex">
-      <div className="relative h-[520px] w-full max-w-[520px] rounded-[40px] bg-[#0e0f0c] p-7 text-white wise-ring">
+    <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[50%] items-center justify-center overflow-hidden p-8 2xl:p-12 lg:flex">
+      <div className="relative h-[520px] w-full max-w-[620px] rounded-[40px] bg-[#0e0f0c] p-7 text-white wise-ring">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-semibold text-[#9fe870]">MXStore Console</p>
@@ -157,10 +161,12 @@ export default async function HomePage() {
   const [{ data: apps, error }, { data: dbCategories }, { data: banners }] = await Promise.all([
     supabase
       .from('apps')
-      .select('name,slug,description,version,is_paid,price_cents,currency,logo_url')
+      .select('name,slug,description,version,is_paid,price_cents,currency,logo_url,show_on_recommended,recommendation_heat')
       .eq('published', true)
+      .eq('show_on_recommended', true)
+      .order('recommendation_heat', { ascending: false })
       .order('created_at', { ascending: false })
-      .limit(8),
+      .limit(64),
     supabase
       .from('app_categories')
       .select('name,slug,icon')
@@ -168,8 +174,9 @@ export default async function HomePage() {
       .order('sort_order', { ascending: true }),
     supabase
       .from('home_banners')
-      .select('title,subtitle,image_url,cta_label,cta_href')
+      .select('title,subtitle,image_url,image_openlist_domain,cta_label,cta_href')
       .eq('enabled', true)
+      .eq('placement', 'recommended')
       .order('sort_order', { ascending: true })
       .limit(5)
   ])
@@ -184,27 +191,30 @@ export default async function HomePage() {
       icon: iconForIndex(index),
       tone: toneForIndex(index)
     }))
-    : fallbackApps
+    : []
   const sidebarCategories: Array<{ label: string; slug?: string; icon: LucideIcon; active?: boolean; dividerBefore?: boolean }> = dbCategories?.length
-    ? dbCategories.map((category: StoreCategory, index: number) => ({
+    ? [
+        { label: '推荐', icon: Star, active: true },
+        ...dbCategories.map((category: StoreCategory) => ({
         label: category.name,
         slug: category.slug,
         icon: getCategoryIcon(category.icon),
-        active: index === 0
+        active: false
       }))
+      ]
     : categories
   const primaryBanner = (banners?.[0] as HomeBanner | undefined) ?? {
-    title: '发现优质应用',
-    subtitle: '为你的 Web3 体验加速',
+    title: '推荐应用',
+    subtitle: '按推荐热度发现优质应用',
     image_url: null,
     cta_label: '探索精选应用',
     cta_href: '#featured-apps'
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f8f2] text-[#0e0f0c]">
-      <div className="grid min-h-screen grid-cols-1 md:grid-cols-[260px_minmax(0,1fr)]">
-        <aside className="flex flex-col border-b border-[#0e0f0c]/10 bg-white px-5 py-6 md:sticky md:top-0 md:h-screen md:border-b-0 md:border-r">
+    <main className="min-h-screen w-full overflow-x-hidden bg-[#f7f8f2] text-[#0e0f0c]">
+      <div className="grid min-h-screen w-full grid-cols-1 md:grid-cols-[clamp(240px,17vw,320px)_minmax(0,1fr)]">
+        <aside className="left-0 flex flex-col border-b border-[#0e0f0c]/10 bg-white px-5 py-6 md:sticky md:top-0 md:h-screen md:border-b-0 md:border-r">
           <div className="flex items-center justify-between md:block">
             <Link href="/" className="flex items-center gap-3">
               <MxLogoMark className="h-[50px] w-[50px]" />
@@ -219,7 +229,7 @@ export default async function HomePage() {
             </Link>
           </div>
 
-          <nav className="mt-8 flex gap-2 overflow-x-auto pb-2 md:mt-12 md:block md:flex-1 md:space-y-2 md:overflow-visible md:pb-0">
+          <nav className="mt-8 flex gap-2 overflow-x-auto pb-2 md:mt-12 md:block md:flex-1 md:space-y-2 md:overflow-y-auto md:overflow-x-hidden md:pb-4 md:pr-1">
             <p className="hidden px-3 pb-3 text-base font-semibold text-[#868685] md:block">分类</p>
             {sidebarCategories.map((item) => {
               const Icon = item.icon
@@ -250,8 +260,8 @@ export default async function HomePage() {
           </Link>
         </aside>
 
-        <section className="min-w-0 bg-[#f7f8f2] px-5 py-8 md:px-9 md:py-10">
-          <div className="relative min-h-[420px] overflow-hidden rounded-[40px] border border-[#0e0f0c]/10 bg-white wise-ring md:min-h-[610px]">
+        <section className="min-w-0 bg-[#f7f8f2] px-4 py-6 sm:px-6 md:px-8 md:py-8 2xl:px-12">
+          <div className="relative min-h-[420px] w-full overflow-hidden rounded-[40px] border border-[#0e0f0c]/10 bg-white wise-ring md:min-h-[610px] 2xl:min-h-[680px]">
             <button
               type="button"
               aria-label="上一张推荐"
@@ -267,13 +277,13 @@ export default async function HomePage() {
               <ChevronRight className="h-6 w-6" />
             </button>
 
-            <div className="relative z-10 flex min-h-[420px] max-w-3xl flex-col justify-center px-7 py-16 md:min-h-[610px] md:px-20 xl:px-28">
+            <div className="relative z-10 flex min-h-[420px] w-full flex-col justify-center px-7 py-16 md:min-h-[610px] md:w-[56%] md:px-16 xl:px-24 2xl:min-h-[680px] 2xl:px-32">
               <div className="inline-flex w-fit items-center gap-2 rounded-full bg-[#e2f6d5] px-5 py-3 text-base font-semibold text-[#163300]">
                 <Sparkle className="h-5 w-5" />
                 精选推荐
               </div>
-              <h1 className="wise-display mt-8 max-w-[680px] text-[56px] text-[#0e0f0c] md:text-[96px]">{primaryBanner.title}</h1>
-              <p className="mt-8 max-w-xl text-xl font-semibold leading-[1.44] text-[#454745] md:text-2xl">{primaryBanner.subtitle ?? '为你的 Web3 体验加速'}</p>
+              <h1 className="wise-display mt-8 text-[56px] text-[#0e0f0c] md:text-[88px] 2xl:text-[108px]">{primaryBanner.title}</h1>
+              <p className="mt-8 text-xl font-semibold leading-[1.44] text-[#454745] md:text-2xl">{primaryBanner.subtitle ?? '为你的 Web3 体验加速'}</p>
               <Link
                 href={primaryBanner.cta_href ?? '#featured-apps'}
                 className="wise-button mt-9 inline-flex h-16 w-fit items-center justify-center px-12 text-xl font-bold"
@@ -283,8 +293,8 @@ export default async function HomePage() {
             </div>
 
             {primaryBanner.image_url ? (
-              <div className="absolute inset-y-0 right-0 hidden w-[54%] items-center justify-center p-12 md:flex">
-                <img src={signedImageSrc(primaryBanner.image_url) ?? primaryBanner.image_url} alt="" className="max-h-[460px] rounded-[40px] object-cover wise-ring" />
+              <div className="absolute inset-y-0 right-0 hidden w-[50%] items-center justify-center p-8 md:flex 2xl:p-12">
+                <img src={signedImageSrc(primaryBanner.image_url, primaryBanner.image_openlist_domain) ?? primaryBanner.image_url} alt="" className="h-full max-h-[520px] w-full max-w-[720px] rounded-[40px] object-cover wise-ring" />
               </div>
             ) : (
               <HeroVisual />
@@ -302,18 +312,24 @@ export default async function HomePage() {
 
           <div id="featured-apps" className="mt-9">
             <div className="mb-6 flex items-center justify-between gap-4">
-              <h2 className="text-3xl font-black text-[#0e0f0c]">精选应用</h2>
+              <h2 className="text-3xl font-black text-[#0e0f0c]">推荐应用</h2>
               <Link href="/apps" className="wise-subtle-button inline-flex items-center gap-2 px-5 py-3 text-base font-semibold">
                 查看全部
                 <ChevronRight className="h-5 w-5" />
               </Link>
             </div>
 
-            <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8">
-              {featuredApps.map((app) => (
-                <StoreAppIconLink key={app.slug} app={app} icon={app.icon} tone={app.tone} />
-              ))}
-            </div>
+            {featuredApps.length ? (
+              <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8">
+                {featuredApps.map((app) => (
+                  <StoreAppIconLink key={app.slug} app={app} icon={app.icon} tone={app.tone} />
+                ))}
+              </div>
+            ) : (
+              <p className="rounded-[30px] border border-[#0e0f0c]/10 bg-white px-5 py-8 text-sm font-semibold text-[#868685] wise-ring">
+                暂无推荐应用。请在管理员后台勾选“在推荐页面显示”，并填写推荐热度。
+              </p>
+            )}
           </div>
 
           <footer className="py-10 text-center text-sm font-semibold text-[#454745]">

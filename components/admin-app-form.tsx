@@ -62,6 +62,8 @@ export function AdminAppForm({ mode = 'create', appId, initialValues, categories
       rating_score: Number(formData.get('rating_score') || 4.8),
       rating_count: Number(formData.get('rating_count') || 0),
       download_count: Number(formData.get('download_count') || 0),
+      show_on_recommended: formData.get('show_on_recommended') === 'on',
+      recommendation_heat: Number(formData.get('recommendation_heat') || 0),
       developer_name: formData.get('developer_name'),
       developer_avatar_url: formData.get('developer_avatar_url'),
       category_id: String(formData.get('category_id') ?? ''),
@@ -173,6 +175,14 @@ export function AdminAppForm({ mode = 'create', appId, initialValues, categories
         <label>
           <span className="label">下载量</span>
           <input name="download_count" type="number" min="0" defaultValue={defaults.download_count} className="input" />
+        </label>
+        <label className="flex items-center gap-2 text-sm text-slate-600">
+          <input name="show_on_recommended" type="checkbox" defaultChecked={defaults.show_on_recommended} /> 在推荐页面显示
+        </label>
+        <label>
+          <span className="label">推荐热度，系统内部排序</span>
+          <input name="recommendation_heat" type="number" min="0" defaultValue={defaults.recommendation_heat} className="input" />
+          <span className="mt-2 block text-xs text-slate-500">勾选推荐页显示时必须填写大于 0 的推荐热度。数值越大，推荐页排序越靠前。</span>
         </label>
         <label className="md:col-span-2">
           <span className="label">描述</span>
