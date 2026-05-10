@@ -127,6 +127,7 @@ export function CategoryManager({ initialItems }: { initialItems: CategoryItem[]
   const [draft, setDraft] = useState<CategoryItem>({ name: '', slug: '', icon: 'Box', sort_order: 0, enabled: true })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const DraftIcon = getCategoryIcon(draft.icon)
 
   async function save(item: CategoryItem) {
     setSaving(true)
@@ -173,7 +174,8 @@ export function CategoryManager({ initialItems }: { initialItems: CategoryItem[]
 
   return (
     <div className="space-y-6">
-      <div className="card grid gap-4 md:grid-cols-[1fr_1fr_220px_120px_120px_auto]">
+      <div className="card grid gap-4 md:grid-cols-[52px_1fr_1fr_220px_120px_110px_110px_48px]">
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#e2f6d5] text-[#163300]"><DraftIcon className="h-5 w-5" /></div>
         <input className="input" placeholder="分类名称" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
         <input className="input" placeholder="slug，例如 ai-apps" value={draft.slug} onChange={(e) => setDraft({ ...draft, slug: e.target.value })} />
         <IconPicker value={draft.icon} onChange={(icon) => setDraft({ ...draft, icon })} />
@@ -182,7 +184,8 @@ export function CategoryManager({ initialItems }: { initialItems: CategoryItem[]
           <input type="checkbox" checked={draft.enabled} onChange={(e) => setDraft({ ...draft, enabled: e.target.checked })} />
           启用
         </label>
-        <button disabled={saving} onClick={() => void save(draft)} className="btn">新增分类</button>
+        <button disabled={saving} onClick={() => void save(draft)} className="btn-secondary">新增分类</button>
+        <span className="hidden h-12 w-12 md:block" aria-hidden="true" />
       </div>
       {error ? <p className="text-sm text-rose-600">{error}</p> : null}
       <div className="grid gap-4">

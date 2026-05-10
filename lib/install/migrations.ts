@@ -61,6 +61,14 @@ const migrations: Migration[] = [
   {
     filename: '0012_home_recommendation_banners.sql',
     readSql: () => readFile(new URL('../../supabase/migrations/0012_home_recommendation_banners.sql', import.meta.url), 'utf8')
+  },
+  {
+    filename: '0013_footer_quick_links_description.sql',
+    readSql: () => readFile(new URL('../../supabase/migrations/0013_footer_quick_links_description.sql', import.meta.url), 'utf8')
+  },
+  {
+    filename: '0014_password_registration_codes.sql',
+    readSql: () => readFile(new URL('../../supabase/migrations/0014_password_registration_codes.sql', import.meta.url), 'utf8')
   }
 ]
 

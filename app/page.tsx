@@ -212,7 +212,7 @@ export default async function HomePage() {
   }
 
   return (
-    <main className="min-h-screen w-full overflow-x-hidden bg-[#f7f8f2] text-[#0e0f0c]">
+    <main className="min-h-screen w-full overflow-x-hidden bg-[#f7f8f2] pb-16 text-[#0e0f0c]">
       <div className="grid min-h-screen w-full grid-cols-1 md:grid-cols-[clamp(240px,17vw,320px)_minmax(0,1fr)]">
         <aside className="left-0 flex flex-col border-b border-[#0e0f0c]/10 bg-white px-5 py-6 md:sticky md:top-0 md:h-screen md:border-b-0 md:border-r">
           <div className="flex items-center justify-between md:block">
@@ -331,12 +331,11 @@ export default async function HomePage() {
               </p>
             )}
           </div>
-
-          <footer className="py-10 text-center text-sm font-semibold text-[#454745]">
-            Copyright © 2026 Maishan Inc. All rights reserved MXStore
-          </footer>
         </section>
       </div>
+      <footer className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#0e0f0c]/10 bg-[#f7f8f2]/95 px-4 py-4 text-center text-sm font-semibold text-[#454745] backdrop-blur">
+        Copyright © 2026 Maishan Inc. All rights reserved MXStore
+      </footer>
     </main>
   )
 }

@@ -4,10 +4,12 @@ import { createRouteClient } from '@/lib/supabase/route'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { upsertStoreUserProfile } from '@/lib/auth'
 import { getNextRouteForUser } from '@/lib/account'
+import { consumePasswordRegistrationCode, hasStoreUserWithEmail, verifyPasswordRegistrationCode } from '@/lib/password-registration'
 
 const passwordLoginSchema = z.object({
   email: z.string().email().transform((email) => email.toLowerCase()),
-  password: z.string().min(8).max(128)
+  password: z.string().min(8).max(128),
+  registration_code: z.string().trim().regex(/^\d{6}$/).optional()
 })
 
 function shouldAutoRegister(errorMessage: string) {
@@ -27,7 +29,11 @@ export async function POST(request: NextRequest) {
   }
 
   const { supabase, applyAuthCookies } = createRouteClient(request)
-  let { data, error } = await supabase.auth.signInWithPassword(parsed.data)
+  const credentials = {
+    email: parsed.data.email,
+    password: parsed.data.password
+  }
+  let { data, error } = await supabase.auth.signInWithPassword(credentials)
 
   if (error || !data.user) {
     const errorMessage = error?.message ?? ''
@@ -36,6 +42,36 @@ export async function POST(request: NextRequest) {
     }
 
     const admin = createAdminClient()
+    const userExists = await hasStoreUserWithEmail(parsed.data.email)
+    if (userExists) {
+      return NextResponse.json({ ok: false, error: '邮箱或密码不正确' }, { status: 401 })
+    }
+
+    if (!parsed.data.registration_code) {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: 'REGISTRATION_CODE_REQUIRED',
+          error: '该邮箱尚未注册，请获取验证码完成注册'
+        },
+        { status: 409 }
+      )
+    }
+
+    let registrationCodeId: string
+    try {
+      registrationCodeId = await verifyPasswordRegistrationCode(parsed.data.email, parsed.data.registration_code)
+    } catch (verifyError) {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: 'REGISTRATION_CODE_INVALID',
+          error: verifyError instanceof Error ? verifyError.message : '注册验证码无效'
+        },
+        { status: 400 }
+      )
+    }
+
     const { error: createError } = await admin.auth.admin.createUser({
       email: parsed.data.email,
       password: parsed.data.password,
@@ -43,10 +79,11 @@ export async function POST(request: NextRequest) {
     })
 
     if (createError) {
-      return NextResponse.json({ ok: false, error: '邮箱或密码不正确' }, { status: 401 })
+      return NextResponse.json({ ok: false, error: createError.message }, { status: 409 })
     }
+    await consumePasswordRegistrationCode(registrationCodeId)
 
-    const retry = await supabase.auth.signInWithPassword(parsed.data)
+    const retry = await supabase.auth.signInWithPassword(credentials)
     data = retry.data
     error = retry.error
   }

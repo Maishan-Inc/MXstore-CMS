@@ -10,6 +10,11 @@ const LinkSchema = z.object({
   enabled: z.boolean()
 })
 
+const LinkGroupSchema = z.object({
+  title: z.string().min(1).max(40),
+  links: z.array(LinkSchema).min(1).max(8)
+})
+
 const SocialSchema = z.object({
   id: z.enum(['facebook', 'x', 'instagram', 'youtube', 'linkedin', 'github', 'telegram', 'discord']),
   label: z.string().min(1).max(40),
@@ -23,6 +28,7 @@ const FooterSettingsSchema = z.object({
   copyright: z.string().min(1).max(160),
   description: z.string().max(1200),
   links: z.array(LinkSchema).min(1).max(12),
+  linkGroups: z.array(LinkGroupSchema).min(1).max(6),
   socials: z.array(SocialSchema).max(defaultFooterSettings.socials.length)
 })
 

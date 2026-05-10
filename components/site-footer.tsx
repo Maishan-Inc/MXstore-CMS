@@ -31,7 +31,9 @@ export async function SiteFooter() {
   const settings = await getFooterSettings()
   if (!settings.enabled) return null
 
-  const links = settings.links.filter((link) => link.enabled && link.href && link.label)
+  const linkGroups = settings.linkGroups
+    .map((group) => ({ ...group, links: group.links.filter((link) => link.enabled && link.href && link.label) }))
+    .filter((group) => group.links.length)
   const socials = settings.socials.filter((social) => social.enabled && social.href)
 
   return (
@@ -63,12 +65,19 @@ export async function SiteFooter() {
           ) : null}
         </div>
 
-        {links.length ? (
-          <nav className="grid gap-x-12 gap-y-5 py-10 text-lg font-semibold md:grid-cols-4">
-            {links.map((link) => (
-              <Link key={`${link.label}-${link.href}`} href={link.href} className="w-fit text-[#092400] hover:text-[#315729]">
-                {link.label}
-              </Link>
+        {linkGroups.length ? (
+          <nav className="grid gap-x-12 gap-y-8 py-10 md:grid-cols-4">
+            {linkGroups.map((group) => (
+              <div key={group.title}>
+                <h2 className="text-base font-black text-[#103a00]">{group.title}</h2>
+                <div className="mt-5 grid gap-3 text-base font-semibold">
+                  {group.links.map((link) => (
+                    <Link key={`${group.title}-${link.label}-${link.href}`} href={link.href} className="w-fit text-[#092400] hover:text-[#315729]">
+                      {link.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
             ))}
           </nav>
         ) : null}

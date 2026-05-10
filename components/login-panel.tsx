@@ -18,7 +18,7 @@ type RkConnector = Connector & {
 
 type PasswordLoginResponse =
   | { ok: true; next: string }
-  | { ok: false; error: string }
+  | { ok: false; error: string; code?: string; detail?: string }
 
 type VisualLoginOption =
   | (WalletLoginOption & { visualId: VisualProviderId })
@@ -270,6 +270,12 @@ export function LoginPanel() {
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [passwordLoading, setPasswordLoading] = useState(false)
   const [passwordAgreementAccepted, setPasswordAgreementAccepted] = useState(false)
+  const [passwordEmail, setPasswordEmail] = useState('')
+  const [passwordValue, setPasswordValue] = useState('')
+  const [passwordRegistrationCode, setPasswordRegistrationCode] = useState('')
+  const [passwordRegistrationRequired, setPasswordRegistrationRequired] = useState(false)
+  const [passwordCodeSending, setPasswordCodeSending] = useState(false)
+  const [passwordCodeCountdown, setPasswordCodeCountdown] = useState(0)
   const { address, connector: activeConnector, isConnected } = useAccount()
   const currentChainId = useChainId()
   const { connectors, connectAsync } = useConnect()
@@ -281,6 +287,14 @@ export function LoginPanel() {
     const error = params.get('auth_error')
     if (error) setOauthError(error)
   }, [])
+
+  useEffect(() => {
+    if (passwordCodeCountdown <= 0) return
+    const timer = window.setTimeout(() => {
+      setPasswordCodeCountdown((current) => Math.max(0, current - 1))
+    }, 1000)
+    return () => window.clearTimeout(timer)
+  }, [passwordCodeCountdown])
 
   const connectorsByName = useMemo(() => {
     return new Map(connectors.map((connector) => [connectorDisplayName(connector), connector]))
@@ -432,6 +446,30 @@ export function LoginPanel() {
     window.location.href = option.href
   }
 
+  async function sendPasswordRegistrationCode() {
+    setPasswordCodeSending(true)
+    setPasswordError(null)
+    try {
+      const response = await fetch('/auth/password/register-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: passwordEmail,
+          password: passwordValue
+        })
+      })
+      const data = await response.json() as { ok?: boolean; error?: string; detail?: string; cooldownSeconds?: number }
+      if (!response.ok || !data.ok) throw new Error(data.detail ?? data.error ?? '验证码发送失败')
+      setPasswordRegistrationRequired(true)
+      setPasswordCodeCountdown(data.cooldownSeconds ?? 60)
+      setPasswordError('验证码已发送，请检查邮箱')
+    } catch (error) {
+      setPasswordError(error instanceof Error ? error.message : '验证码发送失败')
+    } finally {
+      setPasswordCodeSending(false)
+    }
+  }
+
   async function loginWithPassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setPasswordLoading(true)
@@ -450,11 +488,19 @@ export function LoginPanel() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: String(formData.get('email') ?? ''),
-          password: String(formData.get('password') ?? '')
+          password: String(formData.get('password') ?? ''),
+          registration_code: passwordRegistrationRequired ? String(formData.get('registration_code') ?? '') : undefined
         })
       })
       const data = await response.json() as PasswordLoginResponse
-      if (!data.ok) throw new Error(data.error)
+      if (!data.ok) {
+        if (data.code === 'REGISTRATION_CODE_REQUIRED') {
+          setPasswordRegistrationRequired(true)
+          setPasswordError(data.error)
+          return
+        }
+        throw new Error(data.detail ?? data.error)
+      }
       if (!response.ok) throw new Error('账户密码登录失败')
       router.push(data.next)
       router.refresh()
@@ -544,12 +590,68 @@ export function LoginPanel() {
         <form onSubmit={loginWithPassword} className="space-y-3">
           <label className="block">
             <span className="label">邮箱</span>
-            <input name="email" type="email" autoComplete="email" required className="input h-11 rounded-xl" />
+            <input
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              value={passwordEmail}
+              onChange={(event) => {
+                setPasswordEmail(event.target.value)
+                setPasswordRegistrationRequired(false)
+                setPasswordRegistrationCode('')
+                setPasswordError(null)
+              }}
+              className="input h-11 rounded-xl"
+            />
           </label>
           <label className="block">
             <span className="label">密码</span>
-            <input name="password" type="password" autoComplete="current-password" required minLength={8} className="input h-11 rounded-xl" />
+            <input
+              name="password"
+              type="password"
+              autoComplete={passwordRegistrationRequired ? 'new-password' : 'current-password'}
+              required
+              minLength={8}
+              value={passwordValue}
+              onChange={(event) => {
+                setPasswordValue(event.target.value)
+                setPasswordRegistrationCode('')
+                setPasswordError(null)
+              }}
+              className="input h-11 rounded-xl"
+            />
           </label>
+
+          <div className={passwordRegistrationRequired
+            ? 'max-h-24 overflow-hidden opacity-100 transition-all duration-300'
+            : 'max-h-0 overflow-hidden opacity-0 transition-all duration-300'}
+          >
+            <label className="block">
+              <span className="label">注册验证码</span>
+              <div className="grid grid-cols-[1fr_132px] gap-2">
+                <input
+                  name="registration_code"
+                  inputMode="numeric"
+                  pattern="[0-9]{6}"
+                  maxLength={6}
+                  value={passwordRegistrationCode}
+                  onChange={(event) => setPasswordRegistrationCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                  className="input h-11 rounded-xl"
+                  placeholder="6 位验证码"
+                  required={passwordRegistrationRequired}
+                />
+                <button
+                  type="button"
+                  onClick={() => void sendPasswordRegistrationCode()}
+                  disabled={passwordCodeSending || passwordCodeCountdown > 0 || !passwordEmail || passwordValue.length < 8}
+                  className="h-11 rounded-xl border border-[#0e0f0c]/10 bg-[#f7f8f2] px-3 text-sm font-semibold text-[#163300] hover:bg-[#e2f6d5] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {passwordCodeCountdown > 0 ? `${passwordCodeCountdown} 秒` : passwordCodeSending ? '发送中...' : '发送验证码'}
+                </button>
+              </div>
+            </label>
+          </div>
 
           <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-[#0e0f0c]/10 bg-[#f7f8f2] px-3 py-2.5 text-sm leading-6 text-[#454745]">
             <input
@@ -569,7 +671,7 @@ export function LoginPanel() {
           {passwordError ? <p className="text-sm text-rose-600">{passwordError}</p> : null}
 
           <button type="submit" disabled={passwordLoading || !passwordAgreementAccepted} className="btn w-full rounded-xl">
-            {passwordLoading ? '注册/登录中...' : '注册/登录'}
+            {passwordLoading ? '处理中...' : passwordRegistrationRequired ? '完成注册并登录' : '注册/登录'}
           </button>
           <button
             type="button"

@@ -65,39 +65,70 @@ export function FooterSettingsForm({ initialSettings }: { initialSettings: Foote
       </section>
 
       <section className="card space-y-4">
-        <h2 className="text-lg font-semibold text-slate-900">底部链接</h2>
-        <div className="grid gap-4">
-          {settings.links.map((link, index) => (
-            <div key={`${link.label}-${index}`} className="grid gap-3 rounded-2xl border border-slate-200 p-4 md:grid-cols-[1fr_1.4fr_120px]">
+        <h2 className="text-lg font-semibold text-slate-900">快捷目录</h2>
+        <p className="text-sm text-slate-500">底部栏固定展示四组快捷目录：分类、用户后台、协议、文档。</p>
+        <div className="grid gap-4 xl:grid-cols-2">
+          {settings.linkGroups.map((group, groupIndex) => (
+            <div key={`${group.title}-${groupIndex}`} className="rounded-2xl border border-slate-200 p-4">
               <input
-                className="input"
-                value={link.label}
+                className="input mb-3"
+                value={group.title}
                 onChange={(event) => setSettings((current) => ({
                   ...current,
-                  links: current.links.map((item, itemIndex) => itemIndex === index ? { ...item, label: event.target.value } : item)
+                  linkGroups: current.linkGroups.map((item, itemIndex) => itemIndex === groupIndex ? { ...item, title: event.target.value } : item)
                 }))}
-                placeholder="链接名称"
+                placeholder="目录名称"
               />
-              <input
-                className="input"
-                value={link.href}
-                onChange={(event) => setSettings((current) => ({
-                  ...current,
-                  links: current.links.map((item, itemIndex) => itemIndex === index ? { ...item, href: event.target.value } : item)
-                }))}
-                placeholder="/terms 或 https://..."
-              />
-              <label className="flex items-center gap-2 text-sm font-semibold text-slate-600">
-                <input
-                  type="checkbox"
-                  checked={link.enabled}
-                  onChange={(event) => setSettings((current) => ({
-                    ...current,
-                    links: current.links.map((item, itemIndex) => itemIndex === index ? { ...item, enabled: event.target.checked } : item)
-                  }))}
-                />
-                显示
-              </label>
+              <div className="grid gap-3">
+                {group.links.map((link, linkIndex) => (
+                  <div key={`${group.title}-${link.label}-${linkIndex}`} className="grid gap-3 md:grid-cols-[1fr_1.4fr_90px]">
+                    <input
+                      className="input"
+                      value={link.label}
+                      onChange={(event) => setSettings((current) => ({
+                        ...current,
+                        linkGroups: current.linkGroups.map((currentGroup, currentGroupIndex) => currentGroupIndex === groupIndex
+                          ? {
+                              ...currentGroup,
+                              links: currentGroup.links.map((item, itemIndex) => itemIndex === linkIndex ? { ...item, label: event.target.value } : item)
+                            }
+                          : currentGroup)
+                      }))}
+                      placeholder="链接名称"
+                    />
+                    <input
+                      className="input"
+                      value={link.href}
+                      onChange={(event) => setSettings((current) => ({
+                        ...current,
+                        linkGroups: current.linkGroups.map((currentGroup, currentGroupIndex) => currentGroupIndex === groupIndex
+                          ? {
+                              ...currentGroup,
+                              links: currentGroup.links.map((item, itemIndex) => itemIndex === linkIndex ? { ...item, href: event.target.value } : item)
+                            }
+                          : currentGroup)
+                      }))}
+                      placeholder="/terms 或 https://..."
+                    />
+                    <label className="flex items-center gap-2 text-sm font-semibold text-slate-600">
+                      <input
+                        type="checkbox"
+                        checked={link.enabled}
+                        onChange={(event) => setSettings((current) => ({
+                          ...current,
+                          linkGroups: current.linkGroups.map((currentGroup, currentGroupIndex) => currentGroupIndex === groupIndex
+                            ? {
+                                ...currentGroup,
+                                links: currentGroup.links.map((item, itemIndex) => itemIndex === linkIndex ? { ...item, enabled: event.target.checked } : item)
+                              }
+                            : currentGroup)
+                        }))}
+                      />
+                      显示
+                    </label>
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
         </div>
