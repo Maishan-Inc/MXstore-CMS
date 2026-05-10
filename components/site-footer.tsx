@@ -27,10 +27,15 @@ function SocialIcon({ id }: { id: FooterSocialId }) {
   return <path d="M18.8 5.2A16.3 16.3 0 0 0 14.7 4l-.2.4a15 15 0 0 1 3.6 1.7 12.5 12.5 0 0 0-12.2 0 14.6 14.6 0 0 1 3.6-1.7L9.3 4a16.3 16.3 0 0 0-4.1 1.2C2.6 9 1.9 12.7 2.3 16.4A16.5 16.5 0 0 0 7.4 19l.6-.9a10.7 10.7 0 0 1-1.6-.8l.4-.3a11.7 11.7 0 0 0 10.4 0l.4.3c-.5.3-1 .6-1.6.8l.6.9a16.5 16.5 0 0 0 5.1-2.6c.5-4.3-.7-7.9-2.9-11.2ZM8.7 14.2c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2Zm6.6 0c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2Z" />
 }
 
-export async function SiteFooter() {
+type SiteFooterProps = {
+  variant?: 'default' | 'legal'
+}
+
+export async function SiteFooter({ variant = 'default' }: SiteFooterProps = {}) {
   const settings = await getFooterSettings()
   if (!settings.enabled) return null
 
+  const isLegal = variant === 'legal'
   const linkGroups = settings.linkGroups
     .map((group) => ({ ...group, links: group.links.filter((link) => link.enabled && link.href && link.label) }))
     .filter((group) => group.links.length)
@@ -38,15 +43,15 @@ export async function SiteFooter() {
 
   return (
     <footer className="border-t border-[#0e0f0c]/10 bg-[#eef1ed] text-[#092400]">
-      <div className="mx-auto max-w-7xl px-6 py-14">
-        <div className="flex flex-col gap-10 border-b border-[#092400]/15 pb-12 md:flex-row md:items-start md:justify-between">
+      <div className={`${isLegal ? 'mx-auto w-full max-w-[1420px]' : 'mx-auto max-w-7xl'} px-6 py-14`}>
+        <div className={isLegal ? 'flex flex-col items-center gap-8 border-b border-[#092400]/15 pb-12 text-center' : 'flex flex-col gap-10 border-b border-[#092400]/15 pb-12 md:flex-row md:items-start md:justify-between'}>
           <Link href="/" className="flex w-fit items-center gap-4">
             <MxLogoMark className="h-16 w-16" />
             <span className="text-5xl font-black leading-none text-[#103a00]">{settings.brandName}</span>
           </Link>
 
           {socials.length ? (
-            <div className="flex flex-wrap gap-5">
+            <div className={`${isLegal ? 'justify-center' : ''} flex flex-wrap gap-5`}>
               {socials.map((social) => (
                 <a
                   key={social.id}
@@ -66,13 +71,13 @@ export async function SiteFooter() {
         </div>
 
         {linkGroups.length ? (
-          <nav className="grid gap-x-12 gap-y-8 py-10 md:grid-cols-4">
+          <nav className={isLegal ? 'mx-auto grid w-full max-w-[1120px] gap-x-10 gap-y-8 py-10 text-center sm:grid-cols-2 lg:grid-cols-4' : 'grid gap-x-12 gap-y-8 py-10 md:grid-cols-4'}>
             {linkGroups.map((group) => (
               <div key={group.title}>
                 <h2 className="text-base font-black text-[#103a00]">{group.title}</h2>
                 <div className="mt-5 grid gap-3 text-base font-semibold">
                   {group.links.map((link) => (
-                    <Link key={`${group.title}-${link.label}-${link.href}`} href={link.href} className="w-fit text-[#092400] hover:text-[#315729]">
+                    <Link key={`${group.title}-${link.label}-${link.href}`} href={link.href} className={`${isLegal ? 'mx-auto' : ''} w-fit text-[#092400] hover:text-[#315729]`}>
                       {link.label}
                     </Link>
                   ))}
@@ -82,7 +87,7 @@ export async function SiteFooter() {
           </nav>
         ) : null}
 
-        <div className="space-y-5 text-base font-medium leading-8 text-[#092400]">
+        <div className={`${isLegal ? 'mx-auto max-w-4xl text-center' : ''} space-y-5 text-base font-medium leading-8 text-[#092400]`}>
           <p className="font-semibold">{settings.copyright}</p>
           {settings.description ? <p>{settings.description}</p> : null}
         </div>

@@ -1,11 +1,10 @@
 import './globals.css'
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { headers } from 'next/headers'
 import { WalletProvider } from '@/components/wallet-provider'
-import { MxLogoMark } from '@/components/mx-logo-mark'
 import { ActionFeedback } from '@/components/action-feedback'
 import { SiteFooter } from '@/components/site-footer'
+import { SiteTopNav } from '@/components/site-top-nav'
 import { getCurrentStoreUser } from '@/lib/auth'
 
 export const metadata: Metadata = {
@@ -112,30 +111,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="zh-CN">
       <body>
         <WalletProvider>
-          <header className="border-b border-[#0e0f0c]/10 bg-white/90 backdrop-blur">
-            <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 lg:px-6">
-              <Link href="/" className="flex items-center gap-2.5">
-                <MxLogoMark className="h-10 w-10" />
-                <span className="text-lg font-black text-[#0e0f0c]">MXStore</span>
-              </Link>
-              <nav className="flex items-center gap-3 text-sm font-semibold text-[#454745]">
-                <Link href="/apps" className="hidden hover:text-[#0e0f0c] sm:inline">应用</Link>
-                <Link href="/terms" className="hidden hover:text-[#0e0f0c] sm:inline">用户协议</Link>
-                <Link href="/privacy" className="hidden hover:text-[#0e0f0c] sm:inline">隐私政策</Link>
-                {user?.role === 'admin' ? <Link href="/admin" className="wise-subtle-button px-4 py-2">管理员后台</Link> : null}
-                {user ? (
-                  <>
-                    <Link href="/dashboard" className="wise-subtle-button px-4 py-2">用户后台</Link>
-                    <form action="/auth/logout" method="post">
-                      <button className="wise-subtle-button px-4 py-2">退出</button>
-                    </form>
-                  </>
-                ) : (
-                  <Link href="/login" className="wise-button px-4 py-2">登录</Link>
-                )}
-              </nav>
-            </div>
-          </header>
+          <SiteTopNav user={user ? { display_name: user.display_name, email: user.email, avatar_url: user.avatar_url } : null} />
           <main className="mx-auto min-h-screen max-w-7xl px-4 py-8 lg:px-6">{children}</main>
           <SiteFooter />
         </WalletProvider>

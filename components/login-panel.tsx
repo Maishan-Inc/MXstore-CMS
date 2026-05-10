@@ -333,17 +333,26 @@ export function LoginPanel() {
   useEffect(() => {
     let cancelled = false
     async function loadLoginOptions() {
-      const res = await fetch('/api/login-providers')
-      if (!res.ok) return
-      const providers = await res.json() as RemoteLoginProvider[]
-      const mapped = providers.map(remoteProviderToOption).filter((option): option is VisualLoginOption => !!option)
-      const customIcons = providers.reduce<Record<string, string>>((icons, provider) => {
-        if (provider.icon_url) icons[provider.id] = provider.icon_url
-        return icons
-      }, {})
-      if (!cancelled && mapped.length) {
-        setLoginOptions(mapped)
-        setWalletIcons((current) => ({ ...current, ...customIcons }))
+      try {
+        const res = await fetch('/api/login-providers', {
+          headers: { Accept: 'application/json' }
+        })
+        const contentType = res.headers.get('content-type') ?? ''
+        if (!res.ok || !contentType.includes('application/json')) return
+        const providers = await res.json() as RemoteLoginProvider[]
+        const mapped = providers.map(remoteProviderToOption).filter((option): option is VisualLoginOption => !!option)
+        const customIcons = providers.reduce<Record<string, string>>((icons, provider) => {
+          if (provider.icon_url) icons[provider.id] = provider.icon_url
+          return icons
+        }, {})
+        if (!cancelled && mapped.length) {
+          setLoginOptions(mapped)
+          setWalletIcons((current) => ({ ...current, ...customIcons }))
+        }
+      } catch (error) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('Login providers unavailable', error)
+        }
       }
     }
 

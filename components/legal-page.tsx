@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import { SiteTopNav } from '@/components/site-top-nav'
 import { SiteFooter } from '@/components/site-footer'
 import { getCurrentStoreUser } from '@/lib/auth'
 
@@ -19,45 +19,12 @@ export async function LegalPage({ title, subtitle, updatedAt, sections }: LegalP
 
   return (
     <div className="min-h-screen bg-[#eef1ed] text-[#092400]">
-      <nav className="sticky top-0 z-30 h-20 bg-[#103a00]">
-        <div className="mx-auto flex h-full max-w-[1440px] items-center justify-between px-6">
-          <Link href="/" className="flex items-center gap-3">
-            <span className="flex h-14 w-14 items-center justify-center rounded-[18px] bg-white p-2 shadow-[rgba(14,15,12,0.18)_0_0_0_1px]">
-              <img src="/MXStore.png" alt="MXStore" className="h-full w-full object-contain" />
-            </span>
-            <span className="text-xl font-black text-white">MXStore</span>
-          </Link>
-
-          {user?.avatar_url ? (
-            <Link
-              href="/dashboard"
-              aria-label="进入用户后台"
-              className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-[#9fe870] p-1 transition hover:scale-105 hover:bg-[#cdffad]"
-            >
-              <img src={user.avatar_url} alt="" className="h-full w-full rounded-full object-cover" />
-            </Link>
-          ) : user ? (
-            <Link
-              href="/dashboard"
-              className="inline-flex h-11 items-center justify-center rounded-full bg-[#9fe870] px-7 text-base font-black text-[#163300] transition hover:scale-105 hover:bg-[#cdffad]"
-            >
-              用户后台
-            </Link>
-          ) : (
-            <Link
-              href="/login"
-              className="inline-flex h-11 items-center justify-center rounded-full bg-[#9fe870] px-7 text-base font-black text-[#163300] transition hover:scale-105 hover:bg-[#cdffad]"
-            >
-              登录
-            </Link>
-          )}
-        </div>
-      </nav>
+      <SiteTopNav user={user ? { display_name: user.display_name, email: user.email, avatar_url: user.avatar_url } : null} />
 
       <header className="mx-auto max-w-[1420px] border-b border-[#092400]/10 px-6 py-12 md:py-16">
-        <div className="grid items-end gap-8 lg:grid-cols-[minmax(0,640px)_minmax(0,1fr)] lg:gap-16">
-          <p className="max-w-3xl text-xl font-semibold leading-9 text-[#183b12]">{subtitle}</p>
-          <h1 className="text-[48px] font-black leading-[1.05] text-[#092400] md:text-[72px] lg:text-right">{title}</h1>
+        <div className="grid items-end gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,640px)] lg:gap-16">
+          <h1 className="text-[48px] font-black leading-[1.05] text-[#092400] md:text-[72px]">{title}</h1>
+          <p className="max-w-3xl text-xl font-semibold leading-9 text-[#183b12] lg:text-right">{subtitle}</p>
         </div>
       </header>
 
@@ -90,7 +57,7 @@ export async function LegalPage({ title, subtitle, updatedAt, sections }: LegalP
           ))}
         </article>
       </section>
-      <SiteFooter />
+      <SiteFooter variant="legal" />
     </div>
   )
 }

@@ -7,7 +7,9 @@ const PUBLIC_PATHS = [
   '/login',
   '/auth',
   '/api/auth',
-  '/api/kyc/didit/webhook'
+  '/api/kyc/didit/webhook',
+  '/api/login-providers',
+  '/site.webmanifest'
 ]
 
 function isPublicPath(pathname: string) {
@@ -68,5 +70,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)']
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|site.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)']
 }
