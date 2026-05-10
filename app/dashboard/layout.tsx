@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { getCurrentStoreUser } from '@/lib/auth'
 import { canPublishApps } from '@/lib/account'
+import { MxLogoMark } from '@/components/mx-logo-mark'
 
 const baseNavItems = [
   { href: '/dashboard', label: '概览', icon: Home },
@@ -56,6 +57,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <aside className="shrink-0 border-[#0e0f0c]/10 bg-white lg:min-h-screen lg:w-[300px] lg:border-r">
           <div className="flex h-full flex-col px-5 py-9">
             <Link href="/dashboard" className="mb-12 flex items-center gap-2 text-[#0e0f0c]">
+              <MxLogoMark className="h-[50px] w-[50px]" />
               <span className="text-2xl font-black tracking-normal">MXStore</span>
               <span className="rounded-full bg-[#e2f6d5] px-3 py-1 text-sm font-semibold text-[#163300]">用户中心</span>
             </Link>

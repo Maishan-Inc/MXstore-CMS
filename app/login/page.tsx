@@ -1,4 +1,5 @@
 import { LoginPanel } from '@/components/login-panel'
+import { MxLogoMark } from '@/components/mx-logo-mark'
 import { Gift, Globe2, LogIn, ShieldCheck, Zap } from 'lucide-react'
 import type { ReactNode } from 'react'
 
@@ -8,7 +9,7 @@ export default function LoginPage() {
       <div className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-[1120px] items-center gap-12 lg:grid-cols-[500px_500px] xl:gap-16">
         <section className="hidden h-[560px] flex-col justify-start lg:flex">
           <div className="flex items-center gap-6">
-            <MxLogoMark />
+            <MxLogoMark className="h-[76px] w-[76px]" />
             <p className="text-[48px] font-semibold leading-none tracking-normal text-[#0e0f0c]">MXStore</p>
           </div>
 
@@ -31,23 +32,6 @@ export default function LoginPage() {
         <LoginPanel />
       </div>
     </div>
-  )
-}
-
-function MxLogoMark() {
-  return (
-    <svg viewBox="0 0 72 72" className="h-[76px] w-[76px]" aria-hidden="true">
-      <defs>
-        <linearGradient id="mx-login-logo-blue" x1="10" x2="52" y1="14" y2="60" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#9fe870" />
-          <stop offset="1" stopColor="#163300" />
-        </linearGradient>
-      </defs>
-      <path d="M10 14h11.5c2.5 0 4.8 1.3 6.1 3.4L42 40.2 56.7 17c1.2-1.9 3.3-3 5.5-3h6.1L48.8 44.9l18 27.1H54.7c-2.4 0-4.7-1.2-6-3.2L10 14Z" fill="url(#mx-login-logo-blue)" />
-      <path d="M10 14h11.5c2.5 0 4.8 1.3 6.1 3.4L38 33.8 24.4 53.7c-1.3 1.9-3.4 3-5.6 3H10V14Z" fill="#163300" />
-      <path d="M39 38.1 55.4 14h12.9L47.8 44.9 39 38.1Z" fill="#9fe870" />
-      <path d="M28.3 48.1 39 32.3l9.1 13.5-10.9 15.9-8.9-13.6Z" fill="#e2f6d5" />
-    </svg>
   )
 }
 

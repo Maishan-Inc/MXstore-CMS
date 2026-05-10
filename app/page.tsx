@@ -1,4 +1,3 @@
-import Image from 'next/image'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import {
@@ -22,6 +21,7 @@ import {
 import type { LucideIcon } from 'lucide-react'
 import { signedImageSrc } from '@/lib/openlist-image'
 import { StoreAppIconLink } from '@/components/store-app-icon-link'
+import { MxLogoMark } from '@/components/mx-logo-mark'
 
 export const dynamic = 'force-dynamic'
 
@@ -219,7 +219,7 @@ export default async function HomePage() {
         <aside className="flex flex-col border-b border-[#0e0f0c]/10 bg-white px-5 py-6 md:sticky md:top-0 md:h-screen md:border-b-0 md:border-r">
           <div className="flex items-center justify-between md:block">
             <Link href="/" className="flex items-center gap-3">
-              <Image src="/logo.png" alt="MXStore" width={42} height={42} className="rounded-xl" priority />
+              <MxLogoMark className="h-[50px] w-[50px]" />
               <span className="text-2xl font-black text-[#0e0f0c]">MXStore</span>
             </Link>
             <Link

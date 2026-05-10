@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { DatabaseZap } from 'lucide-react'
+import { finishActionFeedback, startActionFeedback } from '@/components/action-feedback'
 
 type UpdateResult = {
   ok: true
@@ -18,6 +19,7 @@ export function DatabaseUpdateButton() {
     setLoading(true)
     setMessage(null)
     setError(null)
+    startActionFeedback()
     try {
       const response = await fetch('/api/admin/database-update', { method: 'POST' })
       if (!response.ok) throw new Error(await response.text())
@@ -25,8 +27,11 @@ export function DatabaseUpdateButton() {
       const applied = result.applied.length ? result.applied.join('、') : '无'
       const skipped = result.skipped.length ? result.skipped.length : 0
       setMessage(`更新完成。已执行：${applied}；已跳过：${skipped} 个。`)
+      finishActionFeedback('数据库更新完成')
     } catch (err) {
-      setError(err instanceof Error ? err.message : '数据库更新失败')
+      const message = err instanceof Error ? err.message : '数据库更新失败'
+      setError(message)
+      finishActionFeedback(message, 'error')
     } finally {
       setLoading(false)
     }

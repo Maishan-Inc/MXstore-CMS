@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import type { AccountType, EnterpriseCertificationStatus, TeamPlanStatus } from '@/lib/account'
 import { getAccountTypeLabel } from '@/lib/account'
+import { finishActionFeedback, startActionFeedback } from '@/components/action-feedback'
 
 const enterpriseOptions: EnterpriseCertificationStatus[] = ['not_required', 'pending', 'verified', 'needs_more_info', 'rejected']
 const teamOptions: TeamPlanStatus[] = ['none', 'pending', 'active', 'expired']
@@ -47,6 +48,7 @@ export function AdminUserIdentity({
   async function save() {
     setLoading(true)
     setMessage(null)
+    startActionFeedback()
     try {
       const response = await fetch(`/api/admin/users/${userId}/identity`, {
         method: 'POST',
@@ -60,8 +62,11 @@ export function AdminUserIdentity({
       })
       if (!response.ok) throw new Error(await response.text())
       setMessage('已保存')
+      finishActionFeedback('用户认证信息保存成功')
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : '保存失败')
+      const message = error instanceof Error ? error.message : '保存失败'
+      setMessage(message)
+      finishActionFeedback(message, 'error')
     } finally {
       setLoading(false)
     }

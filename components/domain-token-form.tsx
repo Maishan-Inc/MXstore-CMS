@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { domainFormDefaults, type DomainFormValues } from '@/lib/admin/domain-records'
+import { finishActionFeedback, startActionFeedback } from '@/components/action-feedback'
 
 type DomainTokenFormProps = {
   mode?: 'create' | 'edit'
@@ -19,6 +20,7 @@ export function DomainTokenForm({ mode = 'create', domainId, initialValues }: Do
   async function submit(formData: FormData) {
     setLoading(true)
     setError(null)
+    startActionFeedback()
     try {
       const payload = {
         domain: formData.get('domain'),
@@ -34,8 +36,11 @@ export function DomainTokenForm({ mode = 'create', domainId, initialValues }: Do
       })
       if (!res.ok) throw new Error(await res.text())
       router.refresh()
+      finishActionFeedback(mode === 'create' ? '域名 Token 保存成功' : '域名配置保存成功')
     } catch (e) {
-      setError(e instanceof Error ? e.message : '保存失败')
+      const message = e instanceof Error ? e.message : '保存失败'
+      setError(message)
+      finishActionFeedback(message, 'error')
     } finally {
       setLoading(false)
     }

@@ -1,9 +1,10 @@
 import './globals.css'
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import Image from 'next/image'
 import { headers } from 'next/headers'
 import { WalletProvider } from '@/components/wallet-provider'
+import { MxLogoMark } from '@/components/mx-logo-mark'
+import { ActionFeedback } from '@/components/action-feedback'
 import { getCurrentStoreUser } from '@/lib/auth'
 
 export const metadata: Metadata = {
@@ -24,7 +25,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   if (isInstallPage) {
     return (
       <html lang="zh-CN">
-        <body>{children}</body>
+        <body>
+          {children}
+          <ActionFeedback />
+        </body>
       </html>
     )
   }
@@ -34,6 +38,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <html lang="zh-CN">
         <body>
           <WalletProvider>{children}</WalletProvider>
+          <ActionFeedback />
         </body>
       </html>
     )
@@ -42,7 +47,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   if (isAdminPage) {
     return (
       <html lang="zh-CN">
-        <body>{children}</body>
+        <body>
+          {children}
+          <ActionFeedback />
+        </body>
       </html>
     )
   }
@@ -52,6 +60,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <html lang="zh-CN">
         <body>
           <WalletProvider>{children}</WalletProvider>
+          <ActionFeedback />
         </body>
       </html>
     )
@@ -62,6 +71,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <html lang="zh-CN">
         <body>
           <WalletProvider>{children}</WalletProvider>
+          <ActionFeedback />
         </body>
       </html>
     )
@@ -76,7 +86,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <header className="border-b border-[#0e0f0c]/10 bg-white/90 backdrop-blur">
             <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 lg:px-6">
               <Link href="/" className="flex items-center gap-2.5">
-                <Image src="/logo.png" alt="MXStore" width={32} height={32} className="rounded-lg" priority />
+                <MxLogoMark className="h-10 w-10" />
                 <span className="text-lg font-black text-[#0e0f0c]">MXStore</span>
               </Link>
               <nav className="flex items-center gap-3 text-sm font-semibold text-[#454745]">
@@ -96,6 +106,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </header>
           <main className="mx-auto min-h-screen max-w-7xl px-4 py-8 lg:px-6">{children}</main>
         </WalletProvider>
+        <ActionFeedback />
       </body>
     </html>
   )

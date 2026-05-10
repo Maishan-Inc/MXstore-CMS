@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { appFormDefaults, fileSizeInputToBytes, type AdminAppFormValues, type AdminAppLinkInput } from '@/lib/admin/apps'
+import { finishActionFeedback, persistActionSuccess, startActionFeedback } from '@/components/action-feedback'
 
 type AdminAppFormProps = {
   mode?: 'create' | 'edit'
@@ -42,6 +43,7 @@ export function AdminAppForm({ mode = 'create', appId, initialValues, categories
   async function submit(formData: FormData) {
     setLoading(true)
     setError(null)
+    startActionFeedback()
     const payload = {
       name: formData.get('name'),
       slug: formData.get('slug'),
@@ -75,10 +77,13 @@ export function AdminAppForm({ mode = 'create', appId, initialValues, categories
       })
       if (!res.ok) throw new Error(await res.text())
       const data = await res.json()
+      persistActionSuccess(mode === 'create' ? '应用创建成功' : '应用保存成功')
       router.push(`${editBasePath}/${data.id}/edit`)
       router.refresh()
     } catch (e) {
-      setError(e instanceof Error ? e.message : mode === 'create' ? '创建失败' : '保存失败')
+      const message = e instanceof Error ? e.message : mode === 'create' ? '创建失败' : '保存失败'
+      setError(message)
+      finishActionFeedback(message, 'error')
     } finally {
       setLoading(false)
     }

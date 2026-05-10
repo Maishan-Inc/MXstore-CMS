@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { ShieldAlert, Sparkles, Users, UserRound, type LucideIcon } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import type { AccountSummary, AccountType } from '@/lib/account'
+import { finishActionFeedback, startActionFeedback } from '@/components/action-feedback'
 import {
   canUpgradeTo,
   getAccountTypeDescription,
@@ -29,6 +30,7 @@ export function AccountIdentityPanel({ user }: { user: AccountSummary }) {
 
   async function submitAccountType(accountType: AccountType, payload: Record<string, string>) {
     setStates((current) => ({ ...current, [accountType]: { loading: true, message: null } }))
+    startActionFeedback()
     try {
       const response = await fetch('/api/account/profile', {
         method: 'POST',
@@ -38,11 +40,14 @@ export function AccountIdentityPanel({ user }: { user: AccountSummary }) {
       if (!response.ok) throw new Error(await response.text())
       setStates((current) => ({ ...current, [accountType]: { loading: false, message: '已更新' } }))
       router.refresh()
+      finishActionFeedback('账户身份提交成功')
     } catch (error) {
+      const message = error instanceof Error ? error.message : '提交失败'
       setStates((current) => ({
         ...current,
-        [accountType]: { loading: false, message: error instanceof Error ? error.message : '提交失败' }
+        [accountType]: { loading: false, message }
       }))
+      finishActionFeedback(message, 'error')
     }
   }
 

@@ -43,7 +43,7 @@
   width: min(720px, 100%);
 }
 .agreement-logo .brand-logo { font-size: 32px; gap: 12px; }
-.agreement-logo .brand-logo-img { width: 48px; height: 48px; }
+.agreement-logo .brand-logo-img { width: 56px; height: 56px; }
 .agreement-article {
   max-width: 680px;
   max-height: 320px;
@@ -115,7 +115,7 @@
   min-height: 50px;
 }
 .install-heading .brand-logo { font-size: 26px; gap: 10px; }
-.install-heading .brand-logo-img { width: 36px; height: 36px; }
+.install-heading .brand-logo-img { width: 44px; height: 44px; }
 
 .install-step-page { margin-top: 24px; min-height: 382px; }
 .install-step-title { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }

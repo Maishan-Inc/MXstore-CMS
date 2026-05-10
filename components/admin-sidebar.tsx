@@ -1,4 +1,3 @@
-import Image from 'next/image'
 import Link from 'next/link'
 import {
   BarChart3,
@@ -14,6 +13,7 @@ import {
   type LucideIcon
 } from 'lucide-react'
 import { adminNavigationItems } from '@/lib/admin/navigation'
+import { MxLogoMark } from '@/components/mx-logo-mark'
 
 const icons: Record<string, LucideIcon> = {
   'layout-dashboard': Grid2X2,
@@ -40,7 +40,7 @@ export function AdminSidebar({ pathname }: { pathname: string }) {
     <aside className="shrink-0 border-[#0e0f0c]/10 bg-white lg:sticky lg:top-0 lg:h-screen lg:w-[284px] lg:self-start lg:border-r">
       <div className="flex h-full flex-col overflow-y-auto px-5 py-8">
         <Link href="/admin" className="mb-10 flex items-center gap-3 text-[#0e0f0c]">
-          <Image src="/logo.png" alt="MXStore" width={42} height={42} className="rounded-xl" priority />
+          <MxLogoMark className="h-[50px] w-[50px]" />
           <span className="text-2xl font-black tracking-normal">MXStore</span>
         </Link>
         <nav className="grid gap-2">

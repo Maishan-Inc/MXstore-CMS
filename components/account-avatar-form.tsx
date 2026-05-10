@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react'
 import { Upload } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { finishActionFeedback, startActionFeedback } from '@/components/action-feedback'
 
 const MAX_AVATAR_BYTES = 512 * 1024
 const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif']
@@ -38,6 +39,7 @@ export function AccountAvatarForm({ avatarUrl, fallbackLabel }: { avatarUrl?: st
     const dataUrl = await readAsDataUrl(file)
     setPreview(dataUrl)
     setSaving(true)
+    startActionFeedback()
     try {
       const response = await fetch('/api/account/avatar', {
         method: 'POST',
@@ -46,8 +48,11 @@ export function AccountAvatarForm({ avatarUrl, fallbackLabel }: { avatarUrl?: st
       })
       if (!response.ok) throw new Error(await response.text())
       router.refresh()
+      finishActionFeedback('头像保存成功')
     } catch (err) {
-      setError(err instanceof Error ? err.message : '头像保存失败')
+      const message = err instanceof Error ? err.message : '头像保存失败'
+      setError(message)
+      finishActionFeedback(message, 'error')
     } finally {
       setSaving(false)
     }

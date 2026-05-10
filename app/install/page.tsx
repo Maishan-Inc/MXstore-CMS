@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { MxLogoMark } from '@/components/mx-logo-mark'
 
 type InstallCheck = { name: string; status: string; message: string }
 
@@ -143,7 +144,7 @@ export default function InstallPage() {
         <section className="install-card install-hero install-agreement">
           <div className="agreement-logo">
             <span className="brand-logo">
-              <img src="/logo.png" alt="" width={48} height={48} className="brand-logo-img" />
+              <MxLogoMark className="brand-logo-img" />
               <span>MXStore</span>
             </span>
           </div>
@@ -205,7 +206,7 @@ export default function InstallPage() {
             {/* Centered brand logo */}
             <div className="install-heading">
               <span className="brand-logo brand-logo-centered">
-                <img src="/logo.png" alt="" width={36} height={36} className="brand-logo-img" />
+                <MxLogoMark className="brand-logo-img" />
                 <span>MXStore</span>
               </span>
             </div>

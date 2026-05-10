@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { finishActionFeedback, startActionFeedback } from '@/components/action-feedback'
 
 type Props = {
   userId: string
@@ -19,6 +20,7 @@ export function AdminUserQuotas({ userId, downloadQuotaBytes, distributionQuotaB
   async function save() {
     setLoading(true)
     setMessage(null)
+    startActionFeedback()
     try {
       const res = await fetch(`/api/admin/users/${userId}/quota`, {
         method: 'POST',
@@ -31,8 +33,11 @@ export function AdminUserQuotas({ userId, downloadQuotaBytes, distributionQuotaB
       })
       if (!res.ok) throw new Error(await res.text())
       setMessage('已保存')
+      finishActionFeedback('用户配额保存成功')
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : '保存失败')
+      const message = error instanceof Error ? error.message : '保存失败'
+      setMessage(message)
+      finishActionFeedback(message, 'error')
     } finally {
       setLoading(false)
     }

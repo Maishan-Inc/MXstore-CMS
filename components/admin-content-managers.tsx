@@ -25,6 +25,7 @@ import {
   type LucideIcon
 } from 'lucide-react'
 import { signedImageSrc } from '@/lib/openlist-image'
+import { finishActionFeedback, persistActionSuccess, startActionFeedback } from '@/components/action-feedback'
 
 const iconLibrary: Record<string, LucideIcon> = {
   Bot,
@@ -138,6 +139,7 @@ export function CategoryManager({ initialItems }: { initialItems: CategoryItem[]
   async function save(item: CategoryItem) {
     setSaving(true)
     setError(null)
+    startActionFeedback()
     try {
       const res = await fetch('/api/admin/categories', {
         method: item.id ? 'PUT' : 'POST',
@@ -145,9 +147,12 @@ export function CategoryManager({ initialItems }: { initialItems: CategoryItem[]
         body: JSON.stringify(item)
       })
       if (!res.ok) throw new Error(await res.text())
+      persistActionSuccess(item.id ? '分类保存成功' : '分类创建成功')
       location.reload()
     } catch (err) {
-      setError(err instanceof Error ? err.message : '保存失败')
+      const message = err instanceof Error ? err.message : '保存失败'
+      setError(message)
+      finishActionFeedback(message, 'error')
     } finally {
       setSaving(false)
     }
@@ -194,16 +199,21 @@ export function BannerManager({ initialItems }: { initialItems: BannerItem[] }) 
 
   async function save(item: BannerItem) {
     setError(null)
-    const res = await fetch('/api/admin/banners', {
-      method: item.id ? 'PUT' : 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(item)
-    })
-    if (!res.ok) {
-      setError(await res.text())
-      return
+    startActionFeedback()
+    try {
+      const res = await fetch('/api/admin/banners', {
+        method: item.id ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(item)
+      })
+      if (!res.ok) throw new Error(await res.text())
+      persistActionSuccess(item.id ? '轮播图保存成功' : '轮播图创建成功')
+      location.reload()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '保存失败'
+      setError(message)
+      finishActionFeedback(message, 'error')
     }
-    location.reload()
   }
 
   return (
@@ -252,16 +262,21 @@ export function LoginProviderManager({ initialItems }: { initialItems: LoginProv
 
   async function save(item: LoginProviderItem) {
     setError(null)
-    const res = await fetch('/api/admin/login-providers', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(item)
-    })
-    if (!res.ok) {
-      setError(await res.text())
-      return
+    startActionFeedback()
+    try {
+      const res = await fetch('/api/admin/login-providers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(item)
+      })
+      if (!res.ok) throw new Error(await res.text())
+      persistActionSuccess(item.id ? '登录方式保存成功' : '登录方式创建成功')
+      location.reload()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '保存失败'
+      setError(message)
+      finishActionFeedback(message, 'error')
     }
-    location.reload()
   }
 
   function openCreate() {

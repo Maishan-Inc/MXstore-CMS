@@ -1,9 +1,9 @@
-import Image from 'next/image'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { Box, Code2, Database, Search, ShieldCheck, Sparkle, UserRound, Wallet, Zap } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { StoreAppIconLink } from '@/components/store-app-icon-link'
+import { MxLogoMark } from '@/components/mx-logo-mark'
 
 export const dynamic = 'force-dynamic'
 
@@ -81,7 +81,7 @@ export default async function AppsPage() {
       <header className="border-b border-[#0e0f0c]/10 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-5">
           <Link href="/" className="flex items-center gap-3">
-            <Image src="/logo.png" alt="MXStore" width={42} height={42} className="rounded-xl" priority />
+            <MxLogoMark className="h-[50px] w-[50px]" />
             <span className="text-2xl font-black text-[#0e0f0c]">MXStore</span>
           </Link>
           <Link href="/login" className="wise-button inline-flex h-10 items-center gap-2 px-4 text-sm font-semibold">

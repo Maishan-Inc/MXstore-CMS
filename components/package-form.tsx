@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { packageFormDefaults, type PackageFormValues } from '@/lib/admin/packages'
+import { finishActionFeedback, startActionFeedback } from '@/components/action-feedback'
 
 type PackageFormProps = {
   mode?: 'create' | 'edit'
@@ -19,6 +20,7 @@ export function PackageForm({ mode = 'create', packageId, initialValues }: Packa
   async function submit(formData: FormData) {
     setLoading(true)
     setError(null)
+    startActionFeedback()
     try {
       const payload = {
         name: formData.get('name'),
@@ -39,8 +41,11 @@ export function PackageForm({ mode = 'create', packageId, initialValues }: Packa
       })
       if (!res.ok) throw new Error(await res.text())
       router.refresh()
+      finishActionFeedback(mode === 'create' ? '套餐保存成功' : '套餐配置保存成功')
     } catch (e) {
-      setError(e instanceof Error ? e.message : '保存失败')
+      const message = e instanceof Error ? e.message : '保存失败'
+      setError(message)
+      finishActionFeedback(message, 'error')
     } finally {
       setLoading(false)
     }
