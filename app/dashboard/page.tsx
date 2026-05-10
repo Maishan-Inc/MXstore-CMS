@@ -20,10 +20,10 @@ type PaymentStatus = 'pending' | 'confirmed' | 'rejected'
 type BadgeTone = 'success' | 'danger' | 'muted' | 'info'
 
 const appIconClasses = [
-  'bg-indigo-500 text-white',
-  'bg-blue-500 text-white',
-  'bg-teal-500 text-white',
-  'bg-slate-900 text-white'
+  'bg-[#0e0f0c] text-white',
+  'bg-[#9fe870] text-[#163300]',
+  'bg-[#38c8ff]/20 text-[#0e0f0c]',
+  'bg-[#ffc091] text-[#0e0f0c]'
 ]
 
 function badgeClass(tone: BadgeTone) {
@@ -64,7 +64,7 @@ function formatOrderTotal(rawValues: Array<string | number | null>) {
 function AppIcon({ label, index, kind }: { label: string; index: number; kind?: 'play' | 'link' }) {
   const Icon = kind === 'link' ? Link2 : Play
   return (
-    <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${appIconClasses[index % appIconClasses.length]}`}>
+    <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${appIconClasses[index % appIconClasses.length]}`}>
       <Icon className="h-6 w-6" fill={kind === 'play' ? 'currentColor' : 'none'} />
       <span className="sr-only">{label}</span>
     </div>
@@ -83,7 +83,7 @@ function MetricCard({
   iconClass: string
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-[0_10px_26px_rgba(15,23,42,0.04)]">
+    <div className="rounded-[30px] border border-[#0e0f0c]/10 bg-white p-7 wise-ring">
       <div className="flex items-center gap-7">
         <div className={`flex h-20 w-20 items-center justify-center rounded-full ${iconClass}`}>
           <Icon className="h-10 w-10" strokeWidth={2.1} />
@@ -164,7 +164,7 @@ export default async function DashboardPage() {
       </section>
 
       <section className="grid gap-8 xl:grid-cols-2">
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_10px_26px_rgba(15,23,42,0.04)]">
+        <div className="overflow-hidden rounded-[30px] border border-[#0e0f0c]/10 bg-white wise-ring">
           <div className="flex items-center justify-between px-7 py-7">
             <h2 className="text-xl font-semibold text-slate-950">最近下载</h2>
             <Link href="/dashboard/downloads" className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-950">
@@ -207,7 +207,7 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_10px_26px_rgba(15,23,42,0.04)]">
+        <div className="overflow-hidden rounded-[30px] border border-[#0e0f0c]/10 bg-white wise-ring">
           <div className="flex items-center justify-between px-7 py-7">
             <h2 className="text-xl font-semibold text-slate-950">最近订单</h2>
             <Link href="/dashboard/orders" className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-950">

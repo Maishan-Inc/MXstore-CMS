@@ -19,12 +19,12 @@ type BadgeTone = 'success' | 'danger' | 'muted' | 'info' | 'warning'
 type PaymentStatus = 'pending' | 'confirmed' | 'rejected'
 
 const appIconClasses = [
-  'bg-blue-500 text-white',
-  'bg-violet-500 text-white',
-  'bg-teal-500 text-white',
-  'bg-orange-500 text-white',
-  'bg-slate-900 text-white',
-  'bg-indigo-500 text-white'
+  'bg-[#0e0f0c] text-white',
+  'bg-[#9fe870] text-[#163300]',
+  'bg-[#38c8ff]/20 text-[#0e0f0c]',
+  'bg-[#ffc091] text-[#0e0f0c]',
+  'bg-[#454745] text-white',
+  'bg-[#e2f6d5] text-[#163300]'
 ]
 
 function badgeClass(tone: BadgeTone) {
@@ -80,9 +80,9 @@ function MetricCard({
   iconClass: string
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-[0_10px_26px_rgba(15,23,42,0.04)]">
+    <div className="rounded-[30px] border border-[#0e0f0c]/10 bg-white p-7 wise-ring">
       <div className="flex items-center gap-7">
-        <div className={`flex h-16 w-16 items-center justify-center rounded-2xl ${iconClass}`}>
+        <div className={`flex h-16 w-16 items-center justify-center rounded-full ${iconClass}`}>
           <Icon className="h-8 w-8" strokeWidth={2.2} />
         </div>
         <div>
@@ -154,12 +154,12 @@ export default async function AdminPage() {
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1.55fr)_minmax(360px,0.95fr)]">
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_10px_26px_rgba(15,23,42,0.04)]">
+        <div className="overflow-hidden rounded-[30px] border border-[#0e0f0c]/10 bg-white wise-ring">
           <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
             <h1 className="text-xl font-semibold text-slate-950">应用列表</h1>
             <Link
               href="/admin/apps"
-              className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-950"
+              className="wise-subtle-button inline-flex h-10 items-center gap-2 px-4 text-sm font-semibold"
             >
               查看全部
               <ChevronRight className="h-4 w-4" />
@@ -184,7 +184,7 @@ export default async function AdminPage() {
                     <tr key={app.id} className="hover:bg-slate-50/70">
                       <td className="whitespace-nowrap px-6 py-4">
                         <div className="flex items-center gap-4">
-                          <div className={`flex h-9 w-9 items-center justify-center rounded-lg text-sm font-semibold ${appIconClasses[index % appIconClasses.length]}`}>
+                          <div className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold ${appIconClasses[index % appIconClasses.length]}`}>
                             {app.name.slice(0, 1).toUpperCase()}
                           </div>
                           <span className="font-semibold text-slate-950">{app.name}</span>
@@ -207,7 +207,7 @@ export default async function AdminPage() {
         </div>
 
         <div className="space-y-6">
-          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_10px_26px_rgba(15,23,42,0.04)]">
+          <div className="overflow-hidden rounded-[30px] border border-[#0e0f0c]/10 bg-white wise-ring">
             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
               <h2 className="text-xl font-semibold text-slate-950">下载配置概览</h2>
               <Link href="/admin/settings/domains" aria-label="域名与 Token 设置" className="text-slate-500 hover:text-slate-950">
@@ -240,10 +240,10 @@ export default async function AdminPage() {
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_10px_26px_rgba(15,23,42,0.04)]">
+          <div className="overflow-hidden rounded-[30px] border border-[#0e0f0c]/10 bg-white wise-ring">
             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
               <h2 className="text-lg font-semibold text-slate-950">最近订单</h2>
-              <Link href="/admin/orders" className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-950">查看全部</Link>
+              <Link href="/admin/orders" className="wise-subtle-button px-4 py-2 text-sm font-semibold">查看全部</Link>
             </div>
             <div className="divide-y divide-slate-200">
               {recentPaymentsResult.data?.map((payment, index) => {
@@ -253,7 +253,7 @@ export default async function AdminPage() {
                 return (
                   <div key={payment.id} className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-4 px-6 py-3.5 text-sm">
                     <div className="flex min-w-0 items-center gap-3">
-                      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-semibold ${appIconClasses[index % appIconClasses.length]}`}>
+                      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${appIconClasses[index % appIconClasses.length]}`}>
                         {(pkgRecord?.name ?? 'O').slice(0, 1)}
                       </div>
                       <div className="min-w-0">

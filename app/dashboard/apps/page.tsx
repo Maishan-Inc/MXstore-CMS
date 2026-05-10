@@ -49,7 +49,7 @@ export default async function DashboardAppsPage() {
       {!entitlements?.length ? (
         <div className="card text-center">
           <p className="text-sm text-slate-500">还没有已购应用。</p>
-          <Link href="/" className="mt-4 inline-block text-sm text-blue-600 hover:text-blue-700">浏览应用商店</Link>
+          <Link href="/" className="mt-4 inline-block text-sm font-semibold text-[#163300] hover:text-[#0e0f0c]">浏览应用商店</Link>
         </div>
       ) : null}
     </div>

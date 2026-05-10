@@ -73,23 +73,23 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="zh-CN">
       <body>
         <WalletProvider>
-          <header className="border-b border-slate-200 bg-white/90 backdrop-blur">
+          <header className="border-b border-[#0e0f0c]/10 bg-white/90 backdrop-blur">
             <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 lg:px-6">
               <Link href="/" className="flex items-center gap-2.5">
                 <Image src="/logo.png" alt="MXStore" width={32} height={32} className="rounded-lg" priority />
-                <span className="text-lg font-semibold text-slate-900">MXStore</span>
+                <span className="text-lg font-black text-[#0e0f0c]">MXStore</span>
               </Link>
-              <nav className="flex items-center gap-4 text-sm text-slate-600">
-                {user?.role === 'admin' ? <Link href="/admin" className="hover:text-slate-900">管理员后台</Link> : null}
+              <nav className="flex items-center gap-3 text-sm font-semibold text-[#454745]">
+                {user?.role === 'admin' ? <Link href="/admin" className="wise-subtle-button px-4 py-2">管理员后台</Link> : null}
                 {user ? (
                   <>
-                    <Link href="/dashboard" className="hover:text-slate-900">用户后台</Link>
+                    <Link href="/dashboard" className="wise-subtle-button px-4 py-2">用户后台</Link>
                     <form action="/auth/logout" method="post">
-                      <button className="hover:text-slate-900">退出</button>
+                      <button className="wise-subtle-button px-4 py-2">退出</button>
                     </form>
                   </>
                 ) : (
-                  <Link href="/login" className="hover:text-slate-900">登录</Link>
+                  <Link href="/login" className="wise-button px-4 py-2">登录</Link>
                 )}
               </nav>
             </div>

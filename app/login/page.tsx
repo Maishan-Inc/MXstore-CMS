@@ -4,17 +4,17 @@ import type { ReactNode } from 'react'
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen bg-white px-6 py-8">
+    <div className="min-h-screen bg-[#f7f8f2] px-6 py-8">
       <div className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-[1120px] items-center gap-12 lg:grid-cols-[500px_500px] xl:gap-16">
         <section className="hidden h-[560px] flex-col justify-start lg:flex">
           <div className="flex items-center gap-6">
             <MxLogoMark />
-            <p className="text-[48px] font-semibold leading-none tracking-normal text-[#071638]">MXStore</p>
+            <p className="text-[48px] font-semibold leading-none tracking-normal text-[#0e0f0c]">MXStore</p>
           </div>
 
           <div className="mt-[34px]">
-            <h1 className="text-[30px] font-semibold leading-tight tracking-normal text-[#071638]">安全分发你的数字应用</h1>
-            <p className="mt-[20px] max-w-[480px] text-[18px] leading-[1.6] tracking-normal text-[#66728a]">
+            <h1 className="text-[30px] font-semibold leading-tight tracking-normal text-[#0e0f0c]">安全分发你的数字应用</h1>
+            <p className="mt-[20px] max-w-[480px] text-[18px] leading-[1.6] tracking-normal text-[#454745]">
               MXStore 既是面向开发者与团队的数字应用分发平台，也是普通人安全下载软件的超级平台。
             </p>
           </div>
@@ -39,14 +39,14 @@ function MxLogoMark() {
     <svg viewBox="0 0 72 72" className="h-[76px] w-[76px]" aria-hidden="true">
       <defs>
         <linearGradient id="mx-login-logo-blue" x1="10" x2="52" y1="14" y2="60" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#004DFF" />
-          <stop offset="1" stopColor="#2C74FF" />
+          <stop stopColor="#9fe870" />
+          <stop offset="1" stopColor="#163300" />
         </linearGradient>
       </defs>
       <path d="M10 14h11.5c2.5 0 4.8 1.3 6.1 3.4L42 40.2 56.7 17c1.2-1.9 3.3-3 5.5-3h6.1L48.8 44.9l18 27.1H54.7c-2.4 0-4.7-1.2-6-3.2L10 14Z" fill="url(#mx-login-logo-blue)" />
-      <path d="M10 14h11.5c2.5 0 4.8 1.3 6.1 3.4L38 33.8 24.4 53.7c-1.3 1.9-3.4 3-5.6 3H10V14Z" fill="#085BFF" />
-      <path d="M39 38.1 55.4 14h12.9L47.8 44.9 39 38.1Z" fill="#3D7DFF" />
-      <path d="M28.3 48.1 39 32.3l9.1 13.5-10.9 15.9-8.9-13.6Z" fill="#D9DEE7" />
+      <path d="M10 14h11.5c2.5 0 4.8 1.3 6.1 3.4L38 33.8 24.4 53.7c-1.3 1.9-3.4 3-5.6 3H10V14Z" fill="#163300" />
+      <path d="M39 38.1 55.4 14h12.9L47.8 44.9 39 38.1Z" fill="#9fe870" />
+      <path d="M28.3 48.1 39 32.3l9.1 13.5-10.9 15.9-8.9-13.6Z" fill="#e2f6d5" />
     </svg>
   )
 }
@@ -54,12 +54,12 @@ function MxLogoMark() {
 function FeatureItem({ icon, title, description }: { icon: ReactNode; title: string; description: string }) {
   return (
     <div className="flex items-center gap-[22px]">
-      <div className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-[12px] bg-[#eef5ff] text-[#1267ff]">
+      <div className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-[12px] bg-[#e2f6d5] text-[#163300]">
         {icon}
       </div>
       <div>
-        <h2 className="text-[17px] font-semibold leading-[1.2] tracking-normal text-[#071638]">{title}</h2>
-        <p className="mt-[7px] text-[15px] leading-[1.35] tracking-normal text-[#66728a]">{description}</p>
+        <h2 className="text-[17px] font-semibold leading-[1.2] tracking-normal text-[#0e0f0c]">{title}</h2>
+        <p className="mt-[7px] text-[15px] leading-[1.35] tracking-normal text-[#454745]">{description}</p>
       </div>
     </div>
   )

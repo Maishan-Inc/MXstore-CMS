@@ -19,14 +19,14 @@ type DisplayApp = StoreApp & {
 }
 
 const appVisuals: Array<{ icon: LucideIcon; tone: string }> = [
-  { icon: Search, tone: 'from-blue-500 to-blue-700' },
+  { icon: Search, tone: 'from-blue-500 to-slate-900' },
   { icon: Code2, tone: 'from-slate-950 to-slate-800' },
-  { icon: Wallet, tone: 'from-cyan-400 to-blue-600' },
+  { icon: Wallet, tone: 'from-orange-500 to-slate-900' },
   { icon: ShieldCheck, tone: 'from-emerald-400 to-emerald-600' },
-  { icon: Database, tone: 'from-indigo-500 to-blue-700' },
-  { icon: Zap, tone: 'from-violet-400 to-blue-500' },
+  { icon: Database, tone: 'from-teal-500 to-slate-900' },
+  { icon: Zap, tone: 'from-blue-400 to-slate-900' },
   { icon: Sparkle, tone: 'from-slate-950 to-black' },
-  { icon: Box, tone: 'from-blue-400 to-sky-600' }
+  { icon: Box, tone: 'from-blue-500 to-slate-900' }
 ]
 
 function iconForIndex(index: number) {
@@ -77,14 +77,14 @@ export default async function AppsPage() {
   })) ?? []
 
   return (
-    <main className="min-h-screen bg-white text-slate-950">
-      <header className="border-b border-slate-200 bg-white">
+    <main className="min-h-screen bg-[#f7f8f2] text-[#0e0f0c]">
+      <header className="border-b border-[#0e0f0c]/10 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-5">
           <Link href="/" className="flex items-center gap-3">
             <Image src="/logo.png" alt="MXStore" width={42} height={42} className="rounded-xl" priority />
-            <span className="text-2xl font-bold text-slate-950">MXStore</span>
+            <span className="text-2xl font-black text-[#0e0f0c]">MXStore</span>
           </Link>
-          <Link href="/login" className="inline-flex h-10 items-center gap-2 rounded-full border border-blue-100 px-4 text-sm font-semibold text-blue-600">
+          <Link href="/login" className="wise-button inline-flex h-10 items-center gap-2 px-4 text-sm font-semibold">
             <UserRound className="h-4 w-4" />
             登录
           </Link>
@@ -94,10 +94,10 @@ export default async function AppsPage() {
       <section className="mx-auto max-w-7xl px-5 py-9">
         <div className="mb-7 flex items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-slate-950">全部应用</h1>
-            <p className="mt-2 text-sm text-slate-500">浏览已发布的 MXStore 应用。</p>
+            <h1 className="wise-display text-[64px] text-[#0e0f0c]">全部应用</h1>
+            <p className="mt-4 text-lg font-semibold text-[#454745]">浏览已发布的 MXStore 应用。</p>
           </div>
-          <Link href="/" className="text-sm font-semibold text-blue-600 hover:text-blue-700">返回首页</Link>
+          <Link href="/" className="wise-subtle-button px-5 py-3 text-sm font-semibold">返回首页</Link>
         </div>
 
         {displayApps.length ? (
@@ -107,7 +107,7 @@ export default async function AppsPage() {
             ))}
           </div>
         ) : (
-          <p className="rounded-lg border border-slate-200 bg-slate-50 px-5 py-8 text-sm text-slate-500">暂无已发布应用。</p>
+          <p className="rounded-[30px] border border-[#0e0f0c]/10 bg-white px-5 py-8 text-sm font-semibold text-[#868685] wise-ring">暂无已发布应用。</p>
         )}
       </section>
     </main>

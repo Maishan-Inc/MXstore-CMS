@@ -76,7 +76,7 @@ export default async function PublisherAppsPage() {
                     </span>
                   </td>
                   <td className="px-5 py-4">
-                    <Link href={`/dashboard/publisher/apps/${app.id}/edit`} className="text-blue-600 hover:text-blue-700">编辑</Link>
+                    <Link href={`/dashboard/publisher/apps/${app.id}/edit`} className="font-semibold text-[#163300] hover:text-[#0e0f0c]">编辑</Link>
                   </td>
                 </tr>
               ))}

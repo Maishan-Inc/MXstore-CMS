@@ -400,9 +400,9 @@ export function LoginPanel() {
   return (
     <>
     {authOverlay ? <AuthOverlay state={authOverlay} /> : null}
-    <section className="mx-auto w-full max-w-[500px] rounded-[18px] border border-[#d9e0eb] bg-white px-9 py-8 shadow-[0_12px_30px_rgba(15,23,42,0.12)]">
+    <section className="mx-auto w-full max-w-[500px] rounded-[30px] border border-[#0e0f0c]/10 bg-white px-9 py-8 wise-ring">
       <div className="mb-6 text-center">
-        <h1 className="text-[30px] font-semibold leading-[1.2] tracking-normal text-[#071638]">注册/登录 MXStore</h1>
+        <h1 className="text-[30px] font-semibold leading-[1.2] tracking-normal text-[#0e0f0c]">注册/登录 MXStore</h1>
       </div>
 
       {mode === 'providers' ? (
@@ -458,17 +458,17 @@ export function LoginPanel() {
           {walletError ? <p className="mt-3 text-center text-sm text-rose-600">{walletError}</p> : null}
 
           <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-5">
-            <span className="h-px bg-[#dce2ec]" />
-            <button type="button" onClick={() => setMode('password')} className="text-sm font-medium leading-none tracking-normal text-[#63708a] hover:text-[#071638]">
+            <span className="h-px bg-[#0e0f0c]/10" />
+            <button type="button" onClick={() => setMode('password')} className="text-sm font-medium leading-none tracking-normal text-[#868685] hover:text-[#0e0f0c]">
               使用账户密码注册/登录
             </button>
-            <span className="h-px bg-[#dce2ec]" />
+            <span className="h-px bg-[#0e0f0c]/10" />
           </div>
 
-          <p className="mt-6 text-center text-sm leading-none tracking-normal text-[#65718a]">
-            登录即表示你同意 <Link href="/terms" className="font-medium text-[#0069ff] hover:text-[#0054cc]">《用户协议》</Link>
+          <p className="mt-6 text-center text-sm leading-none tracking-normal text-[#868685]">
+            登录即表示你同意 <Link href="/terms" className="font-medium text-[#163300] hover:text-[#0e0f0c]">《用户协议》</Link>
             <span> 与 </span>
-            <Link href="/privacy" className="font-medium text-[#0069ff] hover:text-[#0054cc]">《隐私政策》</Link>
+            <Link href="/privacy" className="font-medium text-[#163300] hover:text-[#0e0f0c]">《隐私政策》</Link>
           </p>
         </div>
       ) : (
@@ -482,18 +482,18 @@ export function LoginPanel() {
             <input name="password" type="password" autoComplete="current-password" required minLength={8} className="input h-11 rounded-xl" />
           </label>
 
-          <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm leading-6 text-slate-600">
+          <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-[#0e0f0c]/10 bg-[#f7f8f2] px-3 py-2.5 text-sm leading-6 text-[#454745]">
             <input
               type="checkbox"
               checked={passwordAgreementAccepted}
               onChange={(event) => setPasswordAgreementAccepted(event.target.checked)}
-              className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600"
+              className="mt-1 h-4 w-4 rounded border-slate-300 text-[#163300] focus:ring-[#9fe870]"
             />
             <span>
               我已阅读并同意
-              <Link href="/terms" className="font-medium text-[#0069ff] hover:text-[#0054cc]">《用户协议》</Link>
+              <Link href="/terms" className="font-medium text-[#163300] hover:text-[#0e0f0c]">《用户协议》</Link>
               <span> 与 </span>
-              <Link href="/privacy" className="font-medium text-[#0069ff] hover:text-[#0054cc]">《隐私政策》</Link>
+              <Link href="/privacy" className="font-medium text-[#163300] hover:text-[#0e0f0c]">《隐私政策》</Link>
             </span>
           </label>
 
@@ -521,12 +521,12 @@ function AuthOverlay({ state }: { state: AuthOverlayState }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/65 px-4 backdrop-blur-sm">
-      <div className="rounded-3xl border border-slate-200 bg-white px-9 py-8 text-center shadow-[0_24px_70px_rgba(15,23,42,0.18)]">
+      <div className="rounded-3xl border border-[#0e0f0c]/10 bg-white px-9 py-8 text-center wise-ring">
         <div className="mx-auto mb-5 flex h-28 w-28 items-center justify-center">
           <div className="relative h-24 w-24 rounded-3xl">
             <div className={success
               ? 'absolute inset-0 rounded-3xl bg-emerald-100'
-              : 'absolute inset-0 animate-spin rounded-3xl bg-[conic-gradient(from_0deg,#2563eb,#93c5fd,#e0e7ff,#2563eb)]'}
+              : 'absolute inset-0 animate-spin rounded-3xl bg-[conic-gradient(from_0deg,#9fe870,#e2f6d5,#0e0f0c,#9fe870)]'}
             />
             <div className="absolute inset-[3px] flex items-center justify-center rounded-[21px] bg-white">
               <div className={success ? 'absolute opacity-0 transition-all duration-500 scale-75' : 'absolute opacity-100 transition-all duration-500 scale-100'}>

@@ -58,7 +58,7 @@ export default async function AdminAppsPage() {
                   <td className="px-5 py-4">
                     <div className="flex gap-3">
                       <Link href={`/app/${app.slug}`} className="text-slate-500 hover:text-slate-900">查看</Link>
-                      <Link href={`/admin/apps/${app.id}/edit`} className="text-blue-600 hover:text-blue-700">编辑</Link>
+                      <Link href={`/admin/apps/${app.id}/edit`} className="font-semibold text-[#163300] hover:text-[#0e0f0c]">编辑</Link>
                     </div>
                   </td>
                 </tr>

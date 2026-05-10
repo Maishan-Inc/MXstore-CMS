@@ -117,7 +117,7 @@ function IconPicker({ value, onChange }: { value: string; onChange: (value: stri
                 setOpen(false)
               }}
               className={name === value
-                ? 'flex h-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600'
+                ? 'flex h-11 items-center justify-center rounded-xl bg-[#e2f6d5] text-[#163300]'
                 : 'flex h-11 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-50'}
             >
               <Icon className="h-5 w-5" />
@@ -168,7 +168,7 @@ export function CategoryManager({ initialItems }: { initialItems: CategoryItem[]
           const Icon = iconLibrary[item.icon] ?? Box
           return (
             <div key={item.id ?? index} className="card grid gap-4 md:grid-cols-[52px_1fr_1fr_180px_120px_110px]">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600"><Icon className="h-5 w-5" /></div>
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#e2f6d5] text-[#163300]"><Icon className="h-5 w-5" /></div>
               <input className="input" value={item.name} onChange={(e) => setItems((current) => current.map((entry, i) => i === index ? { ...entry, name: e.target.value } : entry))} />
               <input className="input" value={item.slug} onChange={(e) => setItems((current) => current.map((entry, i) => i === index ? { ...entry, slug: e.target.value } : entry))} />
               <IconPicker value={item.icon} onChange={(icon) => setItems((current) => current.map((entry, i) => i === index ? { ...entry, icon } : entry))} />

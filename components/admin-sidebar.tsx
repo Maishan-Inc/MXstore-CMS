@@ -37,11 +37,11 @@ function isActivePath(pathname: string, href: string) {
 
 export function AdminSidebar({ pathname }: { pathname: string }) {
   return (
-    <aside className="shrink-0 border-slate-200 bg-white lg:sticky lg:top-0 lg:h-screen lg:w-[284px] lg:self-start lg:border-r">
+    <aside className="shrink-0 border-[#0e0f0c]/10 bg-white lg:sticky lg:top-0 lg:h-screen lg:w-[284px] lg:self-start lg:border-r">
       <div className="flex h-full flex-col overflow-y-auto px-5 py-8">
-        <Link href="/admin" className="mb-10 flex items-center gap-3 text-slate-950">
+        <Link href="/admin" className="mb-10 flex items-center gap-3 text-[#0e0f0c]">
           <Image src="/logo.png" alt="MXStore" width={42} height={42} className="rounded-xl" priority />
-          <span className="text-2xl font-bold tracking-tight">MXStore</span>
+          <span className="text-2xl font-black tracking-normal">MXStore</span>
         </Link>
         <nav className="grid gap-2">
           {adminNavigationItems.map((item) => {
@@ -52,10 +52,10 @@ export function AdminSidebar({ pathname }: { pathname: string }) {
                 key={item.href}
                 href={item.href}
                 className={active
-                  ? 'flex h-14 items-center gap-4 rounded-xl bg-blue-50 px-5 text-[15px] font-semibold text-blue-600 shadow-[inset_0_0_0_1px_rgba(59,130,246,0.04)]'
-                  : 'flex h-14 items-center gap-4 rounded-xl px-5 text-[15px] font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-950'}
+                  ? 'flex h-14 items-center gap-4 rounded-full bg-[#e2f6d5] px-5 text-[15px] font-semibold text-[#163300]'
+                  : 'flex h-14 items-center gap-4 rounded-full px-5 text-[15px] font-semibold text-[#454745] hover:bg-[rgba(211,242,192,0.4)] hover:text-[#0e0f0c]'}
               >
-                <Icon className={active ? 'h-5 w-5 text-blue-600' : 'h-5 w-5 text-slate-500'} strokeWidth={2.1} />
+                <Icon className={active ? 'h-5 w-5 text-[#163300]' : 'h-5 w-5 text-[#868685]'} strokeWidth={2.1} />
                 <span>{item.label}</span>
               </Link>
             )
@@ -65,7 +65,7 @@ export function AdminSidebar({ pathname }: { pathname: string }) {
           <button
             type="button"
             aria-label="折叠侧边栏"
-            className="flex h-10 w-10 items-center justify-center rounded-full text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-[#868685] hover:bg-[rgba(211,242,192,0.4)] hover:text-[#0e0f0c]"
           >
             <span className="text-2xl leading-none">‹</span>
           </button>
