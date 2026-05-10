@@ -49,6 +49,10 @@ const migrations: Migration[] = [
   {
     filename: '0009_package_marketing_fields.sql',
     readSql: () => readFile(new URL('../../supabase/migrations/0009_package_marketing_fields.sql', import.meta.url), 'utf8')
+  },
+  {
+    filename: '0010_account_identity_membership.sql',
+    readSql: () => readFile(new URL('../../supabase/migrations/0010_account_identity_membership.sql', import.meta.url), 'utf8')
   }
 ]
 

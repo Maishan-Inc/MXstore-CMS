@@ -1,6 +1,9 @@
 export type AccountType = 'unselected' | 'personal' | 'independent_developer' | 'team_studio' | 'enterprise'
 export type EnterpriseCertificationStatus = 'not_required' | 'pending' | 'verified' | 'rejected' | 'needs_more_info'
 export type TeamPlanStatus = 'none' | 'pending' | 'active' | 'expired'
+export type IdentityPlanTier = 'free' | 'plus' | 'pro' | 'max'
+export type IdentityPlanStatus = 'none' | 'active' | 'pending_kyc' | 'expired' | 'frozen'
+export type KycStatus = 'not_required' | 'pending' | 'verified' | 'rejected' | 'needs_more_info'
 
 export type AccountSummary = {
   role: 'user' | 'admin'
@@ -14,6 +17,14 @@ export type AccountSummary = {
   email: string | null
   avatar_url: string | null
   enterprise_certification_note: string | null
+  identity_public_email: string | null
+  identity_private_email: string | null
+  identity_plan_tier: IdentityPlanTier
+  identity_plan_status: IdentityPlanStatus
+  identity_plan_started_at: string | null
+  identity_plan_expires_at: string | null
+  kyc_status: KycStatus
+  kyc_note: string | null
 }
 
 const accountRank: Record<AccountType, number> = {
@@ -59,11 +70,26 @@ export function getTeamPlanLabel(status: TeamPlanStatus) {
   return '未开通'
 }
 
-export function canPublishApps(user: Pick<AccountSummary, 'role' | 'account_type' | 'enterprise_certification_status' | 'team_plan_status'>) {
+export function getIdentityPlanStatusLabel(status: IdentityPlanStatus) {
+  if (status === 'active') return '有效'
+  if (status === 'pending_kyc') return 'KYC 待审核'
+  if (status === 'expired') return '已过期'
+  if (status === 'frozen') return '冻结中'
+  return '未选择'
+}
+
+export function isIdentityMembershipFrozen(user: Pick<AccountSummary, 'identity_plan_status' | 'identity_plan_expires_at'>) {
+  if (user.identity_plan_status === 'frozen' || user.identity_plan_status === 'expired') return true
+  if (!user.identity_plan_expires_at) return false
+  return new Date(user.identity_plan_expires_at).getTime() < Date.now()
+}
+
+export function canPublishApps(user: Pick<AccountSummary, 'role' | 'account_type' | 'enterprise_certification_status' | 'team_plan_status' | 'identity_plan_status' | 'identity_plan_expires_at'>) {
   if (user.role === 'admin') return true
-  if (user.account_type === 'independent_developer') return true
-  if (user.account_type === 'team_studio') return user.team_plan_status === 'active'
-  if (user.account_type === 'enterprise') return user.enterprise_certification_status === 'verified'
+  if (isIdentityMembershipFrozen(user)) return false
+  if (user.account_type === 'independent_developer') return user.identity_plan_status === 'active'
+  if (user.account_type === 'team_studio') return user.team_plan_status === 'active' && user.identity_plan_status === 'active'
+  if (user.account_type === 'enterprise') return user.enterprise_certification_status === 'verified' && user.identity_plan_status === 'active'
   return false
 }
 

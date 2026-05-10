@@ -3,12 +3,12 @@ import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { unsealJson } from '@/lib/crypto'
-import type { AccountType, EnterpriseCertificationStatus, TeamPlanStatus } from '@/lib/account'
+import type { AccountType, EnterpriseCertificationStatus, IdentityPlanStatus, IdentityPlanTier, KycStatus, TeamPlanStatus } from '@/lib/account'
 
 export const WALLET_SESSION_COOKIE = 'store_wallet_session'
 
 const STORE_USER_BASE_SELECT = 'id,role,email,display_name,wallet_address,auth_user_id'
-const STORE_USER_EXTENDED_SELECT = `${STORE_USER_BASE_SELECT},avatar_url,avatar_source,account_type,developer_name,developer_avatar_url,organization_name,enterprise_certification_status,enterprise_certification_note,team_plan_status,download_quota_bytes,distribution_quota_bytes,distribution_charge_threshold_bytes`
+const STORE_USER_EXTENDED_SELECT = `${STORE_USER_BASE_SELECT},avatar_url,avatar_source,account_type,developer_name,developer_avatar_url,organization_name,enterprise_certification_status,enterprise_certification_note,team_plan_status,download_quota_bytes,distribution_quota_bytes,distribution_charge_threshold_bytes,identity_public_email,identity_private_email,identity_plan_tier,identity_plan_status,identity_plan_started_at,identity_plan_expires_at,kyc_status,kyc_note`
 
 export type StoreUser = {
   id: string
@@ -26,6 +26,14 @@ export type StoreUser = {
   enterprise_certification_status: EnterpriseCertificationStatus
   enterprise_certification_note: string | null
   team_plan_status: TeamPlanStatus
+  identity_public_email: string | null
+  identity_private_email: string | null
+  identity_plan_tier: IdentityPlanTier
+  identity_plan_status: IdentityPlanStatus
+  identity_plan_started_at: string | null
+  identity_plan_expires_at: string | null
+  kyc_status: KycStatus
+  kyc_note: string | null
   download_quota_bytes: number
   distribution_quota_bytes: number
   distribution_charge_threshold_bytes: number
@@ -71,6 +79,14 @@ function normalizeStoreUser(row: StoreUserRow | null): StoreUser | null {
     enterprise_certification_status: row.enterprise_certification_status ?? 'not_required',
     enterprise_certification_note: row.enterprise_certification_note ?? null,
     team_plan_status: row.team_plan_status ?? 'none',
+    identity_public_email: row.identity_public_email ?? null,
+    identity_private_email: row.identity_private_email ?? null,
+    identity_plan_tier: row.identity_plan_tier ?? 'free',
+    identity_plan_status: row.identity_plan_status ?? 'none',
+    identity_plan_started_at: row.identity_plan_started_at ?? null,
+    identity_plan_expires_at: row.identity_plan_expires_at ?? null,
+    kyc_status: row.kyc_status ?? 'not_required',
+    kyc_note: row.kyc_note ?? null,
     download_quota_bytes: Number(row.download_quota_bytes ?? 0),
     distribution_quota_bytes: Number(row.distribution_quota_bytes ?? 0),
     distribution_charge_threshold_bytes: Number(row.distribution_charge_threshold_bytes ?? 1073741824)
@@ -89,6 +105,14 @@ function isMissingStoreUserProfileColumn(error: { message?: string } | null) {
     'enterprise_certification_status',
     'enterprise_certification_note',
     'team_plan_status',
+    'identity_public_email',
+    'identity_private_email',
+    'identity_plan_tier',
+    'identity_plan_status',
+    'identity_plan_started_at',
+    'identity_plan_expires_at',
+    'kyc_status',
+    'kyc_note',
     'download_quota_bytes',
     'distribution_quota_bytes',
     'distribution_charge_threshold_bytes'

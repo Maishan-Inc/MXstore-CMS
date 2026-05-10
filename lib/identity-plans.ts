@@ -56,9 +56,9 @@ export const defaultIdentityPlanSettings: IdentityPlanSettings = {
       note: '应用会展示开发者头像与名称，适合个人品牌发布。',
       priceLabel: 'Free',
       periodLabel: '基础发布层级',
-      ctaLabel: '升级为独立开发者',
+      ctaLabel: '选择独立开发者',
       features: ['发布个人开发者应用', '展示开发者头像与名称', '管理应用版本与下载链接', '支持后续购买更多流量'],
-      highlighted: true,
+      highlighted: false,
       enabled: true,
       freeTierEnabled: true,
       sortOrder: 2
