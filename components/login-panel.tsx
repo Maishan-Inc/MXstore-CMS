@@ -8,6 +8,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react'
 import { CheckCircle2 } from 'lucide-react'
 import { useAccount, useChainId, useConnect, useDisconnect, useSignMessage } from 'wagmi'
 import { oauthLoginOptions, type WalletLoginOption } from '@/lib/login-options'
+import { MxLogoMark } from '@/components/mx-logo-mark'
 
 type RkConnector = Connector & {
   rkDetails?: {
@@ -295,7 +296,7 @@ export function LoginPanel() {
     const message = new SiweMessage({
       domain: window.location.host,
       address: addressToSign,
-      statement: '登录 MXStore',
+      statement: 'MXStore 请求使用钱包签名登录。此操作不会发起交易或产生链上费用。',
       uri: window.location.origin,
       version: '1',
       chainId,
@@ -522,8 +523,11 @@ function AuthOverlay({ state }: { state: AuthOverlayState }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/65 px-4 backdrop-blur-sm">
       <div className="rounded-3xl border border-[#0e0f0c]/10 bg-white px-9 py-8 text-center wise-ring">
-        <div className="mx-auto mb-5 flex h-28 w-28 items-center justify-center">
-          <div className="relative h-24 w-24 rounded-3xl">
+        <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center">
+          <MxLogoMark className="h-16 w-16" />
+        </div>
+        <div className="mx-auto mb-5 flex h-24 w-24 items-center justify-center">
+          <div className="relative h-20 w-20 rounded-3xl">
             <div className={success
               ? 'absolute inset-0 rounded-3xl bg-emerald-100'
               : 'absolute inset-0 animate-spin rounded-3xl bg-[conic-gradient(from_0deg,#9fe870,#e2f6d5,#0e0f0c,#9fe870)]'}
@@ -536,7 +540,8 @@ function AuthOverlay({ state }: { state: AuthOverlayState }) {
             </div>
           </div>
         </div>
-        <p className="text-base font-semibold text-slate-950">{state.label}</p>
+        <p className="text-sm font-semibold text-[#868685]">MXStore 钱包签名登录</p>
+        <p className="mt-1 text-base font-semibold text-slate-950">{state.label}</p>
         <p className="mt-2 text-sm text-slate-500">{state.message}</p>
       </div>
     </div>

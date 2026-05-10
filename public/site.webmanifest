@@ -1,0 +1,17 @@
+{
+  "name": "MXStore",
+  "short_name": "MXStore",
+  "description": "MXStore 应用商店 CMS 与签名下载系统",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f8f2",
+  "theme_color": "#9fe870",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

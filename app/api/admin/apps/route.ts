@@ -14,6 +14,15 @@ const LinkSchema = z.object({
   sort_order: z.number().int().default(0)
 })
 
+const multilineStringArray = z.preprocess((value) => {
+  if (Array.isArray(value)) return value
+  if (typeof value !== 'string') return []
+  return value
+    .split(/\r?\n/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+}, z.array(z.string().trim().min(1)).default([]))
+
 const AppSchema = z.object({
   name: z.string().trim().min(1),
   slug: z.string().trim().min(1).regex(/^[a-z0-9-]+$/),
@@ -21,6 +30,17 @@ const AppSchema = z.object({
   version: z.string().trim().optional().nullable(),
   platform: z.string().trim().optional().nullable(),
   logo_url: z.string().trim().url().optional().or(z.literal('')).nullable(),
+  official_url: z.string().trim().url().optional().or(z.literal('')).nullable(),
+  screenshot_urls: multilineStringArray,
+  feature_highlights: multilineStringArray,
+  changelog: z.string().trim().optional().nullable(),
+  release_date: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/).optional().or(z.literal('')).nullable(),
+  language: z.string().trim().optional().nullable(),
+  license_name: z.string().trim().optional().nullable(),
+  system_requirements: z.string().trim().optional().nullable(),
+  rating_score: z.number().min(0).max(5).default(4.8),
+  rating_count: z.number().int().min(0).default(0),
+  download_count: z.number().int().min(0).default(0),
   developer_name: z.string().trim().optional().nullable(),
   developer_avatar_url: z.string().trim().url().optional().or(z.literal('')).nullable(),
   category_id: z.string().uuid().optional().or(z.literal('')).nullable(),
@@ -121,6 +141,17 @@ export async function POST(request: Request) {
       version: body.version,
       platform: body.platform,
       logo_url: body.logo_url || null,
+      official_url: body.official_url || null,
+      screenshot_urls: body.screenshot_urls,
+      feature_highlights: body.feature_highlights,
+      changelog: body.changelog || null,
+      release_date: body.release_date || null,
+      language: body.language || null,
+      license_name: body.license_name || null,
+      system_requirements: body.system_requirements || null,
+      rating_score: body.rating_score,
+      rating_count: body.rating_count,
+      download_count: body.download_count,
       category_id: body.category_id || null,
       download_permission: body.download_permission,
       is_paid: body.download_permission === 'purchase' || body.is_paid,
@@ -184,6 +215,17 @@ export async function PUT(request: Request) {
       version: body.version,
       platform: body.platform,
       logo_url: body.logo_url || null,
+      official_url: body.official_url || null,
+      screenshot_urls: body.screenshot_urls,
+      feature_highlights: body.feature_highlights,
+      changelog: body.changelog || null,
+      release_date: body.release_date || null,
+      language: body.language || null,
+      license_name: body.license_name || null,
+      system_requirements: body.system_requirements || null,
+      rating_score: body.rating_score,
+      rating_count: body.rating_count,
+      download_count: body.download_count,
       category_id: body.category_id || null,
       download_permission: body.download_permission,
       is_paid: body.download_permission === 'purchase' || body.is_paid,

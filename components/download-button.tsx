@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 
-export function DownloadButton({ linkId, label }: { linkId: string; label: string }) {
+export function DownloadButton({ linkId, label, className }: { linkId: string; label: string; className?: string }) {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -32,7 +32,7 @@ export function DownloadButton({ linkId, label }: { linkId: string; label: strin
 
   return (
     <div>
-      <button onClick={download} disabled={loading} className="btn">
+      <button onClick={download} disabled={loading} className={className ?? 'btn'}>
         {loading ? '准备下载...' : label}
       </button>
       {error ? <p className="mt-2 text-sm text-red-500">{error}</p> : null}

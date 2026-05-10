@@ -1,0 +1,11 @@
+alter table public.apps add column if not exists official_url text;
+alter table public.apps add column if not exists screenshot_urls text[] not null default '{}';
+alter table public.apps add column if not exists feature_highlights text[] not null default '{}';
+alter table public.apps add column if not exists changelog text;
+alter table public.apps add column if not exists release_date date;
+alter table public.apps add column if not exists language text;
+alter table public.apps add column if not exists license_name text;
+alter table public.apps add column if not exists system_requirements text;
+alter table public.apps add column if not exists rating_score numeric(3,2) not null default 4.8 check (rating_score >= 0 and rating_score <= 5);
+alter table public.apps add column if not exists rating_count integer not null default 0 check (rating_count >= 0);
+alter table public.apps add column if not exists download_count integer not null default 0 check (download_count >= 0);

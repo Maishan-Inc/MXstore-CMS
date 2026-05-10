@@ -18,9 +18,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useState } from 'react'
 
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'replace-me'
+const appUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000')
+const appIcon = `${appUrl.replace(/\/$/, '')}/favicon.svg`
 
 const config = getDefaultConfig({
   appName: 'MXStore',
+  appDescription: 'MXStore 应用商店 CMS 与签名下载系统',
+  appUrl,
+  appIcon,
   projectId,
   wallets: [
     {
@@ -46,7 +51,14 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider>{children}</RainbowKitProvider>
+        <RainbowKitProvider
+          appInfo={{
+            appName: 'MXStore',
+            learnMoreUrl: appUrl
+          }}
+        >
+          {children}
+        </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
   )

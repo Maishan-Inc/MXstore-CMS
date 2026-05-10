@@ -22,6 +22,7 @@ import type { LucideIcon } from 'lucide-react'
 import { signedImageSrc } from '@/lib/openlist-image'
 import { StoreAppIconLink } from '@/components/store-app-icon-link'
 import { MxLogoMark } from '@/components/mx-logo-mark'
+import { getCategoryIcon } from '@/lib/category-icons'
 
 export const dynamic = 'force-dynamic'
 
@@ -67,20 +68,6 @@ const categories: Array<{ label: string; icon: LucideIcon; active?: boolean; div
   { label: '文档', icon: FileText },
   { label: '关于', icon: Info }
 ]
-
-const iconMap: Record<string, LucideIcon> = {
-  Box,
-  Code2,
-  Database,
-  FileText,
-  Info,
-  Search,
-  ShieldCheck,
-  Sparkles: Sparkle,
-  Sparkle,
-  Wallet,
-  Zap
-}
 
 const fallbackApps: DisplayApp[] = [
   { name: 'OpenList', slug: 'openlist', logo_url: null, icon: Search, tone: 'from-blue-500 to-slate-900' },
@@ -198,10 +185,11 @@ export default async function HomePage() {
       tone: toneForIndex(index)
     }))
     : fallbackApps
-  const sidebarCategories: Array<{ label: string; icon: LucideIcon; active?: boolean; dividerBefore?: boolean }> = dbCategories?.length
+  const sidebarCategories: Array<{ label: string; slug?: string; icon: LucideIcon; active?: boolean; dividerBefore?: boolean }> = dbCategories?.length
     ? dbCategories.map((category: StoreCategory, index: number) => ({
         label: category.name,
-        icon: iconMap[category.icon] ?? Box,
+        slug: category.slug,
+        icon: getCategoryIcon(category.icon),
         active: index === 0
       }))
     : categories
@@ -238,7 +226,7 @@ export default async function HomePage() {
               return (
                 <div key={item.label} className={item.dividerBefore ? 'md:border-t md:border-[#0e0f0c]/10 md:pt-6' : undefined}>
                   <Link
-                    href={item.active ? '/' : '#'}
+                    href={item.slug ? `/category/${item.slug}` : item.active ? '/' : '#'}
                     className={`flex h-12 shrink-0 items-center gap-4 rounded-lg px-4 text-base font-semibold transition md:h-14 ${
                       item.active
                         ? 'rounded-full bg-[#e2f6d5] text-[#163300]'

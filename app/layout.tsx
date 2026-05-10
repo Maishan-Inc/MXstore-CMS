@@ -8,8 +8,24 @@ import { ActionFeedback } from '@/components/action-feedback'
 import { getCurrentStoreUser } from '@/lib/auth'
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
   title: 'MXStore',
-  description: 'MXStore 应用商店 CMS 与签名下载系统'
+  description: 'MXStore 应用商店 CMS 与签名下载系统',
+  manifest: '/site.webmanifest',
+  icons: {
+    icon: [
+      { url: '/favicon.ico', type: 'image/svg+xml' },
+      { url: '/favicon.svg', type: 'image/svg+xml' }
+    ],
+    shortcut: '/favicon.ico',
+    apple: '/favicon.svg'
+  },
+  openGraph: {
+    title: 'MXStore',
+    description: 'MXStore 应用商店 CMS 与签名下载系统',
+    siteName: 'MXStore',
+    images: [{ url: '/favicon.svg', width: 72, height: 72, alt: 'MXStore' }]
+  }
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

@@ -51,6 +51,17 @@ export function AdminAppForm({ mode = 'create', appId, initialValues, categories
       version: formData.get('version'),
       platform: formData.get('platform'),
       logo_url: formData.get('logo_url'),
+      official_url: formData.get('official_url'),
+      screenshot_urls: formData.get('screenshot_urls'),
+      feature_highlights: formData.get('feature_highlights'),
+      changelog: formData.get('changelog'),
+      release_date: formData.get('release_date'),
+      language: formData.get('language'),
+      license_name: formData.get('license_name'),
+      system_requirements: formData.get('system_requirements'),
+      rating_score: Number(formData.get('rating_score') || 4.8),
+      rating_count: Number(formData.get('rating_count') || 0),
+      download_count: Number(formData.get('download_count') || 0),
       developer_name: formData.get('developer_name'),
       developer_avatar_url: formData.get('developer_avatar_url'),
       category_id: String(formData.get('category_id') ?? ''),
@@ -123,6 +134,10 @@ export function AdminAppForm({ mode = 'create', appId, initialValues, categories
           <span className="mt-2 block text-xs text-slate-500">支持 OpenList 签名图片链接，系统保存后会自动按域名生成临时访问地址。</span>
         </label>
         <label>
+          <span className="label">官网 URL</span>
+          <input name="official_url" defaultValue={defaults.official_url} className="input" placeholder="https://..." />
+        </label>
+        <label>
           <span className="label">开发者名称</span>
           <input name="developer_name" defaultValue={defaults.developer_name} className="input" required placeholder="开发者、团队或公司名称" />
         </label>
@@ -135,9 +150,50 @@ export function AdminAppForm({ mode = 'create', appId, initialValues, categories
           <span className="label">货币</span>
           <input name="currency" defaultValue={defaults.currency} className="input" />
         </label>
+        <label>
+          <span className="label">发布日期</span>
+          <input name="release_date" type="date" defaultValue={defaults.release_date} className="input" />
+        </label>
+        <label>
+          <span className="label">语言</span>
+          <input name="language" defaultValue={defaults.language} className="input" placeholder="简体中文" />
+        </label>
+        <label>
+          <span className="label">授权方式</span>
+          <input name="license_name" defaultValue={defaults.license_name} className="input" placeholder="免费 / 商业授权 / 开源" />
+        </label>
+        <label>
+          <span className="label">评分</span>
+          <input name="rating_score" type="number" min="0" max="5" step="0.1" defaultValue={defaults.rating_score} className="input" />
+        </label>
+        <label>
+          <span className="label">评价数</span>
+          <input name="rating_count" type="number" min="0" defaultValue={defaults.rating_count} className="input" />
+        </label>
+        <label>
+          <span className="label">下载量</span>
+          <input name="download_count" type="number" min="0" defaultValue={defaults.download_count} className="input" />
+        </label>
         <label className="md:col-span-2">
           <span className="label">描述</span>
           <textarea name="description" defaultValue={defaults.description} className="input min-h-28" placeholder="应用介绍、更新日志、安装说明" />
+        </label>
+        <label className="md:col-span-2">
+          <span className="label">应用截图 URL</span>
+          <textarea name="screenshot_urls" defaultValue={defaults.screenshot_urls} className="input min-h-28" placeholder={'每行一个图片 URL\nhttps://.../screenshot-1.png\nhttps://.../screenshot-2.png'} />
+          <span className="mt-2 block text-xs text-slate-500">详情页会按顺序展示，支持 OpenList 签名图片链接。</span>
+        </label>
+        <label className="md:col-span-2">
+          <span className="label">功能亮点</span>
+          <textarea name="feature_highlights" defaultValue={defaults.feature_highlights} className="input min-h-24" placeholder={'每行一个亮点，例如：\n超快下载：多线程下载引擎\nMod 与整合包：一键安装与管理'} />
+        </label>
+        <label className="md:col-span-2">
+          <span className="label">更新日志</span>
+          <textarea name="changelog" defaultValue={defaults.changelog} className="input min-h-24" placeholder="每行一条更新内容" />
+        </label>
+        <label className="md:col-span-2">
+          <span className="label">系统支持</span>
+          <input name="system_requirements" defaultValue={defaults.system_requirements} className="input" placeholder="Windows 7/8/10/11" />
         </label>
         <label>
           <span className="label">下载权限</span>

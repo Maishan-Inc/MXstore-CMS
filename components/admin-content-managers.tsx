@@ -2,52 +2,14 @@
 
 import { useState } from 'react'
 import {
-  Bot,
-  Box,
-  Brain,
-  Code2,
-  Database,
-  Download,
-  FileText,
-  Globe2,
   Image,
   KeyRound,
-  Layers,
-  Link2,
-  Lock,
-  Package,
-  Search,
-  ShieldCheck,
-  Sparkles,
-  Wallet,
-  Zap,
   X,
-  type LucideIcon
+  Trash2
 } from 'lucide-react'
 import { signedImageSrc } from '@/lib/openlist-image'
 import { finishActionFeedback, persistActionSuccess, startActionFeedback } from '@/components/action-feedback'
-
-const iconLibrary: Record<string, LucideIcon> = {
-  Bot,
-  Box,
-  Brain,
-  Code2,
-  Database,
-  Download,
-  FileText,
-  Globe2,
-  Image,
-  KeyRound,
-  Layers,
-  Link2,
-  Lock,
-  Package,
-  Search,
-  ShieldCheck,
-  Sparkles,
-  Wallet,
-  Zap
-}
+import { categoryIconLibrary, categoryIconNames, getCategoryIcon } from '@/lib/category-icons'
 
 type CategoryItem = {
   id?: string
@@ -98,7 +60,9 @@ function readImageAsDataUrl(file: File) {
 
 function IconPicker({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   const [open, setOpen] = useState(false)
-  const SelectedIcon = iconLibrary[value] ?? Box
+  const [query, setQuery] = useState('')
+  const SelectedIcon = getCategoryIcon(value)
+  const filteredIcons = categoryIconNames.filter((name) => name.toLowerCase().includes(query.trim().toLowerCase()))
 
   return (
     <div className="relative">
@@ -107,23 +71,35 @@ function IconPicker({ value, onChange }: { value: string; onChange: (value: stri
         {value}
       </button>
       {open ? (
-        <div className="absolute left-0 top-12 z-30 grid w-[320px] grid-cols-5 gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl">
-          {Object.entries(iconLibrary).map(([name, Icon]) => (
-            <button
-              key={name}
-              type="button"
-              title={name}
-              onClick={() => {
-                onChange(name)
-                setOpen(false)
-              }}
-              className={name === value
-                ? 'flex h-11 items-center justify-center rounded-xl bg-[#e2f6d5] text-[#163300]'
-                : 'flex h-11 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-50'}
-            >
-              <Icon className="h-5 w-5" />
-            </button>
-          ))}
+        <div className="absolute left-0 top-12 z-30 w-[min(420px,calc(100vw-3rem))] rounded-[24px] border border-[#0e0f0c]/10 bg-white p-3 shadow-xl">
+          <input
+            className="input mb-3 h-10 rounded-full"
+            placeholder="搜索图标，例如 Game / Wallet / Code"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+          <div className="grid max-h-[320px] grid-cols-6 gap-2 overflow-y-auto pr-1">
+            {filteredIcons.map((name) => {
+              const Icon = categoryIconLibrary[name]
+              return (
+                <button
+                  key={name}
+                  type="button"
+                  title={name}
+                  onClick={() => {
+                    onChange(name)
+                    setOpen(false)
+                    setQuery('')
+                  }}
+                  className={name === value
+                    ? 'flex h-11 items-center justify-center rounded-xl bg-[#e2f6d5] text-[#163300]'
+                    : 'flex h-11 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-50'}
+                >
+                  <Icon className="h-5 w-5" />
+                </button>
+              )
+            })}
+          </div>
         </div>
       ) : null}
     </div>
@@ -158,27 +134,66 @@ export function CategoryManager({ initialItems }: { initialItems: CategoryItem[]
     }
   }
 
+  async function remove(item: CategoryItem) {
+    if (!item.id) return
+    if (!confirm(`确认删除分类「${item.name}」？已使用该分类的应用会自动变为未分类。`)) return
+
+    setSaving(true)
+    setError(null)
+    startActionFeedback()
+    try {
+      const res = await fetch(`/api/admin/categories?id=${encodeURIComponent(item.id)}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error(await res.text())
+      persistActionSuccess('分类删除成功')
+      setItems((current) => current.filter((entry) => entry.id !== item.id))
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '删除失败'
+      setError(message)
+      finishActionFeedback(message, 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
-      <div className="card grid gap-4 md:grid-cols-[1fr_1fr_180px_120px_auto]">
+      <div className="card grid gap-4 md:grid-cols-[1fr_1fr_220px_120px_120px_auto]">
         <input className="input" placeholder="分类名称" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
         <input className="input" placeholder="slug，例如 ai-apps" value={draft.slug} onChange={(e) => setDraft({ ...draft, slug: e.target.value })} />
         <IconPicker value={draft.icon} onChange={(icon) => setDraft({ ...draft, icon })} />
         <input className="input" type="number" value={draft.sort_order} onChange={(e) => setDraft({ ...draft, sort_order: Number(e.target.value) })} />
+        <label className="flex items-center gap-2 text-sm font-semibold text-[#454745]">
+          <input type="checkbox" checked={draft.enabled} onChange={(e) => setDraft({ ...draft, enabled: e.target.checked })} />
+          启用
+        </label>
         <button disabled={saving} onClick={() => void save(draft)} className="btn">新增分类</button>
       </div>
       {error ? <p className="text-sm text-rose-600">{error}</p> : null}
       <div className="grid gap-4">
         {items.map((item, index) => {
-          const Icon = iconLibrary[item.icon] ?? Box
+          const Icon = getCategoryIcon(item.icon)
           return (
-            <div key={item.id ?? index} className="card grid gap-4 md:grid-cols-[52px_1fr_1fr_180px_120px_110px]">
+            <div key={item.id ?? index} className="card grid gap-4 md:grid-cols-[52px_1fr_1fr_220px_120px_110px_110px_48px]">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#e2f6d5] text-[#163300]"><Icon className="h-5 w-5" /></div>
               <input className="input" value={item.name} onChange={(e) => setItems((current) => current.map((entry, i) => i === index ? { ...entry, name: e.target.value } : entry))} />
               <input className="input" value={item.slug} onChange={(e) => setItems((current) => current.map((entry, i) => i === index ? { ...entry, slug: e.target.value } : entry))} />
               <IconPicker value={item.icon} onChange={(icon) => setItems((current) => current.map((entry, i) => i === index ? { ...entry, icon } : entry))} />
               <input className="input" type="number" value={item.sort_order} onChange={(e) => setItems((current) => current.map((entry, i) => i === index ? { ...entry, sort_order: Number(e.target.value) } : entry))} />
+              <label className="flex items-center gap-2 text-sm font-semibold text-[#454745]">
+                <input type="checkbox" checked={item.enabled} onChange={(e) => setItems((current) => current.map((entry, i) => i === index ? { ...entry, enabled: e.target.checked } : entry))} />
+                {item.enabled ? '启用' : '停用'}
+              </label>
               <button disabled={saving} onClick={() => void save(item)} className="btn-secondary">保存</button>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => void remove(item)}
+                className="flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 text-rose-700 hover:bg-rose-100 disabled:opacity-50"
+                aria-label={`删除 ${item.name}`}
+                title="删除分类"
+              >
+                <Trash2 className="h-5 w-5" />
+              </button>
             </div>
           )
         })}

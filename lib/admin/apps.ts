@@ -17,6 +17,17 @@ export type AdminAppFormValues = {
   version: string
   platform: string
   logo_url: string
+  official_url: string
+  screenshot_urls: string
+  feature_highlights: string
+  changelog: string
+  release_date: string
+  language: string
+  license_name: string
+  system_requirements: string
+  rating_score: number
+  rating_count: number
+  download_count: number
   developer_name: string
   developer_avatar_url: string
   category_id: string
@@ -35,6 +46,17 @@ type ExistingApp = {
   version: string | null
   platform: string | null
   logo_url: string | null
+  official_url?: string | null
+  screenshot_urls?: string[] | null
+  feature_highlights?: string[] | null
+  changelog?: string | null
+  release_date?: string | null
+  language?: string | null
+  license_name?: string | null
+  system_requirements?: string | null
+  rating_score?: number | null
+  rating_count?: number | null
+  download_count?: number | null
   developer_name?: string | null
   developer_avatar_url?: string | null
   category_id?: string | null
@@ -61,6 +83,17 @@ export function appFormDefaults(): AdminAppFormValues {
     version: '',
     platform: '',
     logo_url: '',
+    official_url: '',
+    screenshot_urls: '',
+    feature_highlights: '',
+    changelog: '',
+    release_date: '',
+    language: '简体中文',
+    license_name: '免费',
+    system_requirements: '',
+    rating_score: 4.8,
+    rating_count: 0,
+    download_count: 0,
     developer_name: '',
     developer_avatar_url: '',
     category_id: '',
@@ -91,6 +124,17 @@ export function normalizeAppPayload(app: ExistingApp): AdminAppFormValues {
     version: app.version ?? '',
     platform: app.platform ?? '',
     logo_url: app.logo_url ?? '',
+    official_url: app.official_url ?? '',
+    screenshot_urls: formatMultiline(app.screenshot_urls),
+    feature_highlights: formatMultiline(app.feature_highlights),
+    changelog: app.changelog ?? '',
+    release_date: app.release_date ?? '',
+    language: app.language ?? '简体中文',
+    license_name: app.license_name ?? '免费',
+    system_requirements: app.system_requirements ?? '',
+    rating_score: Number(app.rating_score ?? 4.8),
+    rating_count: Number(app.rating_count ?? 0),
+    download_count: Number(app.download_count ?? 0),
     developer_name: app.developer_name ?? '',
     developer_avatar_url: app.developer_avatar_url ?? '',
     category_id: app.category_id ?? '',
@@ -132,4 +176,8 @@ export function formatFileSizeForInput(bytes: number | null): Pick<AdminAppLinkI
 
 function trimFileSize(value: number, digits = 2) {
   return value.toFixed(digits).replace(/\.?0+$/, '')
+}
+
+function formatMultiline(values: string[] | null | undefined) {
+  return values?.filter(Boolean).join('\n') ?? ''
 }

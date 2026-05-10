@@ -115,8 +115,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <footer className="border-t border-[#0e0f0c]/10 bg-white px-6 py-8 text-sm font-semibold text-[#868685] lg:px-14">
             <div className="mx-auto flex max-w-5xl flex-col items-center justify-center gap-5 sm:flex-row">
               <span>© 2024 MXStore，保留所有权利。</span>
-              <Link href="/" className="text-slate-500 hover:text-slate-900">服务条款</Link>
-              <Link href="/" className="text-slate-500 hover:text-slate-900">隐私政策</Link>
+              <Link href="/terms" className="text-slate-500 hover:text-slate-900">服务条款</Link>
+              <Link href="/privacy" className="text-slate-500 hover:text-slate-900">隐私政策</Link>
             </div>
           </footer>
         </div>
