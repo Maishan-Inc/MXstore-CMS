@@ -5,7 +5,6 @@ import type { Connector } from 'wagmi'
 import { SiweMessage } from 'siwe'
 import { useRouter } from 'next/navigation'
 import { FormEvent, useEffect, useMemo, useState } from 'react'
-import { Radio } from 'lucide-react'
 import { useAccount, useChainId, useConnect, useDisconnect, useSignMessage } from 'wagmi'
 import { oauthLoginOptions, type WalletLoginOption } from '@/lib/login-options'
 import { MxLogoMark } from '@/components/mx-logo-mark'
@@ -53,12 +52,21 @@ type RemoteLoginProvider = {
 }
 
 type AuthOverlayState = {
+  kind: 'wallet'
   visualId: VisualProviderId
   label: string
   iconSrc?: string
   status: 'loading' | 'success'
   message: string
+} | {
+  kind: 'oauth'
+  visualId: VisualProviderId
+  label: string
+  iconSrc?: string
 }
+
+const walletConnectProjectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
+const walletConnectConfigured = Boolean(walletConnectProjectId && walletConnectProjectId !== 'replace-me')
 
 const visualLoginOptions: VisualLoginOption[] = [
   {
@@ -187,10 +195,47 @@ function sleep(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms))
 }
 
+type ApiErrorPayload = {
+  ok?: false
+  code?: string
+  error?: string
+  detail?: string
+}
+
+async function authResponseError(response: Response, fallback: string) {
+  const contentType = response.headers.get('content-type') ?? ''
+  if (contentType.includes('application/json')) {
+    const payload = await response.json().catch(() => null) as ApiErrorPayload | null
+    const parts = [payload?.code, payload?.error, payload?.detail].filter((part): part is string => Boolean(part))
+    return parts.length ? parts.join(': ') : fallback
+  }
+
+  const text = await response.text().catch(() => '')
+  return text || fallback
+}
+
 function friendlyAuthError(error: unknown) {
   const raw = error instanceof Error ? error.message : String(error)
   const message = raw.toLowerCase()
 
+  if (message.includes('walletconnect_project_id') || message.includes('walletconnect project id') || message.includes('project id')) {
+    return 'WalletConnect Project ID 未配置，请先在环境变量中配置 NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID'
+  }
+  if (message.includes('nonce_missing') || (message.includes('nonce') && message.includes('缺失'))) {
+    return '钱包登录 nonce 已丢失，请重新发起登录'
+  }
+  if (message.includes('nonce_cookie_invalid') || message.includes('cookie 解密失败') || message.includes('signature mismatch')) {
+    return '登录校验 Cookie 解密失败，请刷新页面后重试'
+  }
+  if (message.includes('nonce_expired') || message.includes('nonce 已过期')) {
+    return '钱包登录校验已过期，请重新发起登录'
+  }
+  if (message.includes('siwe_domain_mismatch') || message.includes('domain')) {
+    return '当前站点域名与钱包签名域名不一致，请刷新页面后重试'
+  }
+  if (message.includes('store_user_upsert_failed') || message.includes('数据库用户资料同步失败')) {
+    return '钱包用户资料同步失败，请稍后重试'
+  }
   if (message.includes('user rejected') || message.includes('rejected the request') || message.includes('user denied') || message.includes('4001')) {
     return '你已取消授权'
   }
@@ -210,7 +255,7 @@ function friendlyAuthError(error: unknown) {
     return '网络连接异常，请稍后重试'
   }
 
-  return raw.length > 48 ? '登录失败，请重试' : raw || '登录失败，请重试'
+  return raw.length > 96 ? '登录失败，请重试' : raw || '登录失败，请重试'
 }
 
 export function LoginPanel() {
@@ -219,6 +264,7 @@ export function LoginPanel() {
   const [loginOptions, setLoginOptions] = useState<VisualLoginOption[]>(visualLoginOptions)
   const [walletIcons, setWalletIcons] = useState<Record<string, string>>({})
   const [walletError, setWalletError] = useState<string | null>(null)
+  const [oauthError, setOauthError] = useState<string | null>(null)
   const [walletLoadingId, setWalletLoadingId] = useState<VisualProviderId | null>(null)
   const [authOverlay, setAuthOverlay] = useState<AuthOverlayState | null>(null)
   const [passwordError, setPasswordError] = useState<string | null>(null)
@@ -229,6 +275,12 @@ export function LoginPanel() {
   const { connectors, connectAsync } = useConnect()
   const { disconnectAsync } = useDisconnect()
   const { signMessageAsync } = useSignMessage()
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const error = params.get('auth_error')
+    if (error) setOauthError(error)
+  }, [])
 
   const connectorsByName = useMemo(() => {
     return new Map(connectors.map((connector) => [connectorDisplayName(connector), connector]))
@@ -288,11 +340,15 @@ export function LoginPanel() {
   }, [])
 
   async function finishWalletLogin(addressToSign: string, chainId: number) {
-    const nonceRes = await fetch('/api/auth/siwe/nonce')
-    if (!nonceRes.ok) throw new Error('无法生成钱包登录 nonce')
+    const nonceRes = await fetch('/api/auth/siwe/nonce', {
+      cache: 'no-store',
+      credentials: 'same-origin'
+    })
+    if (!nonceRes.ok) throw new Error(await authResponseError(nonceRes, '无法生成钱包登录 nonce'))
     const { nonce } = await nonceRes.json() as { nonce?: string }
     if (!nonce) throw new Error('钱包登录 nonce 无效')
 
+    setAuthOverlay((current) => current?.kind === 'wallet' ? { ...current, message: '请在钱包插件中确认签名' } : current)
     const message = new SiweMessage({
       domain: window.location.host,
       address: addressToSign,
@@ -307,17 +363,23 @@ export function LoginPanel() {
     const verifyRes = await fetch('/api/auth/siwe/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
       body: JSON.stringify({ message, signature })
     })
-    if (!verifyRes.ok) throw new Error(await verifyRes.text())
+    if (!verifyRes.ok) throw new Error(await authResponseError(verifyRes, '钱包签名验证失败'))
     const data = await verifyRes.json() as { role?: 'admin' | 'user'; next?: string }
-    setAuthOverlay((current) => current ? { ...current, status: 'success', message: '签名已确认，正在完成登录' } : current)
+    setAuthOverlay((current) => current?.kind === 'wallet' ? { ...current, status: 'success', message: '签名已确认，正在完成登录' } : current)
     await sleep(3000)
     router.push(data.next ?? (data.role === 'admin' ? '/admin' : '/dashboard'))
     router.refresh()
   }
 
   async function loginWithWallet(option: WalletLoginOption & { visualId: VisualProviderId }) {
+    if (option.id === 'walletconnect' && !walletConnectConfigured) {
+      setWalletError('WalletConnect Project ID 未配置，请先配置 NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID')
+      return
+    }
+
     const connector = connectorsByName.get(option.connectorName) ?? (canUseInjectedFallback(option.connectorName) ? injectedConnector : undefined)
     if (!connector) {
       setWalletError(`${option.label} 钱包未安装或未启用`)
@@ -326,12 +388,14 @@ export function LoginPanel() {
 
     setWalletLoadingId(option.visualId)
     setWalletError(null)
+    setOauthError(null)
     setAuthOverlay({
+      kind: 'wallet',
       visualId: option.visualId,
       label: option.label,
       iconSrc: walletIcons[option.visualId],
       status: 'loading',
-      message: '请在钱包中确认授权'
+      message: `连接 ${option.label}`
     })
     try {
       if (isConnected && activeConnector && activeConnector.uid !== connector.uid) {
@@ -345,6 +409,9 @@ export function LoginPanel() {
         await finishWalletLogin(result.accounts[0], result.chainId)
       }
     } catch (error) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Wallet login failed', error)
+      }
       setWalletError(friendlyAuthError(error))
       setAuthOverlay(null)
     } finally {
@@ -354,12 +421,12 @@ export function LoginPanel() {
 
   async function loginWithOauth(option: Extract<VisualLoginOption, { type: 'oauth' }>) {
     setWalletError(null)
+    setOauthError(null)
     setAuthOverlay({
+      kind: 'oauth',
       visualId: option.visualId,
       label: option.label,
-      iconSrc: walletIcons[option.visualId],
-      status: 'loading',
-      message: '正在跳转到授权页面'
+      iconSrc: walletIcons[option.visualId]
     })
     await sleep(350)
     window.location.href = option.href
@@ -457,6 +524,7 @@ export function LoginPanel() {
           </div>
 
           {walletError ? <p className="mt-3 text-center text-sm text-rose-600">{walletError}</p> : null}
+          {oauthError ? <p className="mt-3 text-center text-sm text-rose-600">{oauthError}</p> : null}
 
           <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-5">
             <span className="h-px bg-[#0e0f0c]/10" />
@@ -518,6 +586,36 @@ export function LoginPanel() {
 }
 
 function AuthOverlay({ state }: { state: AuthOverlayState }) {
+  if (state.kind === 'oauth') return <OAuthOverlay state={state} />
+  return <WalletOverlay state={state} />
+}
+
+function OAuthOverlay({ state }: { state: Extract<AuthOverlayState, { kind: 'oauth' }> }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/70 px-4 backdrop-blur-md">
+      <div className="w-[min(390px,calc(100vw-2rem))] rounded-[28px] border border-[#0e0f0c]/10 bg-white p-7 text-center wise-ring">
+        <h2 className="text-xl font-black text-[#0e0f0c]">正在跳转到 {state.label} 授权</h2>
+        <p className="mt-3 text-sm font-semibold leading-6 text-[#454745]">
+          将打开第三方授权页面，授权完成后返回 MXStore
+        </p>
+
+        <div className="mx-auto mt-8 grid w-full max-w-[240px] grid-cols-[72px_1fr_72px] items-center">
+          <div className="flex h-[72px] w-[72px] items-center justify-center rounded-[20px] border border-[#0e0f0c]/10 bg-white shadow-sm">
+            <ProviderIcon id={state.visualId} src={state.iconSrc} />
+          </div>
+          <div className="relative h-px bg-[#0e0f0c]/10">
+            <span className="absolute left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#9fe870]" />
+          </div>
+          <div className="flex h-[72px] w-[72px] items-center justify-center rounded-[20px] border border-[#0e0f0c]/10 bg-white shadow-sm">
+            <MxLogoMark className="h-11 w-11" />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function WalletOverlay({ state }: { state: Extract<AuthOverlayState, { kind: 'wallet' }> }) {
   const success = state.status === 'success'
   const [countdown, setCountdown] = useState(3)
 
@@ -539,8 +637,8 @@ function AuthOverlay({ state }: { state: AuthOverlayState }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/70 px-4 backdrop-blur-md">
       <div className="flex aspect-square w-[min(430px,calc(100vw-2rem))] flex-col justify-between rounded-[34px] border border-[#0e0f0c]/10 bg-white p-8 text-center wise-ring">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.16em] text-[#868685]">MXStore Wallet Login</p>
-          <h2 className="mt-3 text-2xl font-black text-[#0e0f0c]">{success ? `${state.label} 登录成功` : `连接 ${state.label}`}</h2>
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-[#868685]">MXStore</p>
+          <h2 className="mt-3 text-2xl font-black text-[#0e0f0c]">{success ? `${state.label} 登录成功` : 'MXStore 钱包签名登录'}</h2>
           <p className="mt-2 text-sm font-semibold leading-6 text-[#454745]">{state.message}</p>
         </div>
 
@@ -561,10 +659,13 @@ function AuthOverlay({ state }: { state: AuthOverlayState }) {
           </div>
 
           <div className={success
-            ? 'absolute left-1/2 top-1/2 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 scale-50 items-center justify-center rounded-full bg-[#e2f6d5] text-[#163300] opacity-0 transition-all duration-300'
-            : 'absolute left-1/2 top-1/2 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-[#e2f6d5] text-[#163300] opacity-100 transition-all duration-300'}
+            ? 'absolute left-1/2 top-1/2 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 scale-50 items-center justify-center rounded-full bg-[#e2f6d5] opacity-0 transition-all duration-300'
+            : 'absolute left-1/2 top-1/2 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-[#e2f6d5] opacity-100 transition-all duration-300'}
           >
-            <Radio className="h-5 w-5" />
+            <span className="relative flex h-4 w-4">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#9fe870] opacity-75" />
+              <span className="relative inline-flex h-4 w-4 rounded-full bg-[#163300]" />
+            </span>
           </div>
         </div>
 

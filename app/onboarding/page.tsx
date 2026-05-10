@@ -2,33 +2,30 @@ import { redirect } from 'next/navigation'
 import { getCurrentStoreUser } from '@/lib/auth'
 import { AccountIdentityPanel } from '@/components/account-identity-panel'
 import { getAccountTypeLabel, getEnterpriseStatusLabel, getTeamPlanLabel } from '@/lib/account'
+import { getIdentityPlanSettings } from '@/lib/identity-plan-settings'
 
 export default async function OnboardingPage() {
   const user = await getCurrentStoreUser()
   if (!user) redirect('/login')
   if (user.role === 'admin') redirect('/admin')
+  const identityPlanSettings = await getIdentityPlanSettings()
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 px-6 py-10">
+    <div id="identity-top" className="mx-auto max-w-[1500px] space-y-8 px-4 py-10 sm:px-6 lg:px-8">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-950">选择你的账户身份</h1>
-        <p className="mt-2 text-sm text-slate-500">身份一旦提升就不能降级。只有独立开发者、团队工作室和企业账号可以发布应用。</p>
+        <h1 className="text-4xl font-black text-[#0e0f0c] sm:text-5xl">{identityPlanSettings.pageTitle}</h1>
+        <p className="mt-4 max-w-3xl text-base leading-7 text-[#454745]">{identityPlanSettings.pageSubtitle}</p>
       </div>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_10px_26px_rgba(15,23,42,0.04)]">
-        <div className="grid gap-4 md:grid-cols-3">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">当前身份</p>
-            <p className="mt-1 text-sm font-semibold text-slate-950">{getAccountTypeLabel(user.account_type)}</p>
-          </div>
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">企业状态</p>
-            <p className="mt-1 text-sm font-semibold text-slate-950">{getEnterpriseStatusLabel(user.enterprise_certification_status)}</p>
-          </div>
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">团队套餐</p>
-            <p className="mt-1 text-sm font-semibold text-slate-950">{getTeamPlanLabel(user.team_plan_status)}</p>
-          </div>
+      <section className="flex flex-wrap gap-3 text-sm font-semibold text-[#454745]">
+        <div className="rounded-full border border-[#0e0f0c]/10 bg-white px-4 py-2 shadow-[rgba(14,15,12,0.12)_0_0_0_1px]">
+          当前身份：<span className="text-[#0e0f0c]">{getAccountTypeLabel(user.account_type)}</span>
+        </div>
+        <div className="rounded-full border border-[#0e0f0c]/10 bg-white px-4 py-2 shadow-[rgba(14,15,12,0.12)_0_0_0_1px]">
+          企业状态：<span className="text-[#0e0f0c]">{getEnterpriseStatusLabel(user.enterprise_certification_status)}</span>
+        </div>
+        <div className="rounded-full border border-[#0e0f0c]/10 bg-white px-4 py-2 shadow-[rgba(14,15,12,0.12)_0_0_0_1px]">
+          团队套餐：<span className="text-[#0e0f0c]">{getTeamPlanLabel(user.team_plan_status)}</span>
         </div>
       </section>
 
@@ -47,7 +44,7 @@ export default async function OnboardingPage() {
         </section>
       ) : null}
 
-      <AccountIdentityPanel user={user} />
+      <AccountIdentityPanel user={user} settings={identityPlanSettings} />
     </div>
   )
 }

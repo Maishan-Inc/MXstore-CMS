@@ -24,6 +24,17 @@ export function PackageForm({ mode = 'create', packageId, initialValues }: Packa
     try {
       const payload = {
         name: formData.get('name'),
+        description: formData.get('description'),
+        badge: formData.get('badge'),
+        display_price: formData.get('display_price'),
+        traffic_label: formData.get('traffic_label'),
+        cta_label: formData.get('cta_label'),
+        features: String(formData.get('features') ?? '')
+          .split('\n')
+          .map((item) => item.trim())
+          .filter(Boolean),
+        highlighted: formData.get('highlighted') === 'on',
+        sort_order: Number(formData.get('sort_order') || 0),
         bytes_amount: Number(formData.get('bytes_amount')),
         chain_id: Number(formData.get('chain_id')),
         asset_type: formData.get('asset_type'),
@@ -56,6 +67,34 @@ export function PackageForm({ mode = 'create', packageId, initialValues }: Packa
       <label>
         <span className="label">套餐名称</span>
         <input name="name" defaultValue={defaults.name} className="input" required placeholder="100GB 流量包" />
+      </label>
+      <label>
+        <span className="label">展示标签</span>
+        <input name="badge" defaultValue={defaults.badge} className="input" placeholder="推荐 / 热门 / 限时" />
+      </label>
+      <label>
+        <span className="label">展示价格</span>
+        <input name="display_price" defaultValue={defaults.display_price} className="input" placeholder="0.005 ETH" />
+      </label>
+      <label>
+        <span className="label">展示流量</span>
+        <input name="traffic_label" defaultValue={defaults.traffic_label} className="input" placeholder="100GB" />
+      </label>
+      <label>
+        <span className="label">按钮文案</span>
+        <input name="cta_label" defaultValue={defaults.cta_label} className="input" required placeholder="钱包付款并自动校验" />
+      </label>
+      <label>
+        <span className="label">排序</span>
+        <input name="sort_order" defaultValue={defaults.sort_order} className="input" type="number" />
+      </label>
+      <label className="md:col-span-2">
+        <span className="label">套餐说明</span>
+        <textarea name="description" defaultValue={defaults.description} className="input min-h-24" placeholder="适用人群、使用场景、套餐说明" />
+      </label>
+      <label className="md:col-span-2">
+        <span className="label">套餐权益，每行一条</span>
+        <textarea name="features" defaultValue={defaults.features} className="input min-h-28" placeholder="到账后自动增加下载流量" />
       </label>
       <label>
         <span className="label">流量 bytes</span>
@@ -94,6 +133,9 @@ export function PackageForm({ mode = 'create', packageId, initialValues }: Packa
       </label>
       <label className="flex items-center gap-2 text-sm text-slate-600 md:col-span-2">
         <input name="enabled" type="checkbox" defaultChecked={defaults.enabled} /> 启用此流量套餐
+      </label>
+      <label className="flex items-center gap-2 text-sm text-slate-600 md:col-span-2">
+        <input name="highlighted" type="checkbox" defaultChecked={defaults.highlighted} /> 前台使用推荐高亮样式
       </label>
       <div className="md:col-span-2">
         <button disabled={loading} className="btn">{loading ? '保存中...' : mode === 'create' ? '保存套餐' : '保存套餐配置'}</button>

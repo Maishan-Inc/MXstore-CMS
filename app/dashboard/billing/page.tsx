@@ -12,6 +12,7 @@ export default async function BillingPage() {
     .from('traffic_packages')
     .select('*')
     .eq('enabled', true)
+    .order('sort_order', { ascending: true })
     .order('bytes_amount')
 
   return (

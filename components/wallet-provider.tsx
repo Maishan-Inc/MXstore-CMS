@@ -17,7 +17,10 @@ import { mainnet, base, bsc } from 'wagmi/chains'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useState } from 'react'
 
-const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'replace-me'
+const walletConnectProjectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
+const projectId = walletConnectProjectId && walletConnectProjectId !== 'replace-me'
+  ? walletConnectProjectId
+  : 'mxstore-walletconnect-project-id-required'
 const appUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000')
 const appIcon = `${appUrl.replace(/\/$/, '')}/wallet-app-icon.svg`
 

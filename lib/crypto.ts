@@ -1,9 +1,10 @@
 import 'server-only'
 import crypto from 'node:crypto'
-import { requiredEnv } from '@/lib/env'
 
 function key() {
-  return crypto.createHash('sha256').update(requiredEnv('APP_SECRET')).digest()
+  const secret = process.env.APP_SECRET ?? process.env.SIWE_SESSION_SECRET
+  if (!secret) throw new Error('Missing required env: APP_SECRET or SIWE_SESSION_SECRET')
+  return crypto.createHash('sha256').update(secret).digest()
 }
 
 export function encryptSecret(plainText: string): string {
@@ -32,11 +33,39 @@ export function sealJson(value: unknown): string {
   return `${body}.${hmac(body)}`
 }
 
-export function unsealJson<T>(sealed?: string): T | null {
-  if (!sealed) return null
+export type UnsealJsonResult<T> =
+  | { ok: true; value: T }
+  | { ok: false; reason: 'missing' | 'invalid_format' | 'invalid_signature' | 'invalid_json'; message: string }
+
+export function unsealJsonResult<T>(sealed?: string): UnsealJsonResult<T> {
+  if (!sealed) {
+    return { ok: false, reason: 'missing', message: 'Missing sealed cookie value' }
+  }
+
   const [body, sig] = sealed.split('.')
-  if (!body || !sig) return null
+  if (!body || !sig) {
+    return { ok: false, reason: 'invalid_format', message: 'Invalid sealed cookie format' }
+  }
+
   const expected = hmac(body)
-  if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null
-  return JSON.parse(Buffer.from(body, 'base64url').toString('utf8')) as T
+  const signature = Buffer.from(sig)
+  const expectedSignature = Buffer.from(expected)
+  if (signature.length !== expectedSignature.length || !crypto.timingSafeEqual(signature, expectedSignature)) {
+    return { ok: false, reason: 'invalid_signature', message: 'Sealed cookie signature mismatch' }
+  }
+
+  try {
+    return { ok: true, value: JSON.parse(Buffer.from(body, 'base64url').toString('utf8')) as T }
+  } catch (error) {
+    return {
+      ok: false,
+      reason: 'invalid_json',
+      message: error instanceof Error ? `Invalid sealed cookie JSON: ${error.message}` : 'Invalid sealed cookie JSON'
+    }
+  }
+}
+
+export function unsealJson<T>(sealed?: string): T | null {
+  const result = unsealJsonResult<T>(sealed)
+  return result.ok ? result.value : null
 }

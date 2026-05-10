@@ -1,6 +1,14 @@
 export type PackageFormValues = {
   id: string | null
   name: string
+  description: string
+  badge: string
+  display_price: string
+  traffic_label: string
+  cta_label: string
+  features: string
+  highlighted: boolean
+  sort_order: string
   bytes_amount: string
   chain_id: number
   asset_type: 'native' | 'erc20'
@@ -15,6 +23,14 @@ export type PackageFormValues = {
 type ExistingPackage = {
   id: string
   name: string
+  description?: string | null
+  badge?: string | null
+  display_price?: string | null
+  traffic_label?: string | null
+  cta_label?: string | null
+  features?: string[] | null
+  highlighted?: boolean | null
+  sort_order?: number | null
   bytes_amount: number | string
   chain_id: number
   asset_type: 'native' | 'erc20'
@@ -30,6 +46,14 @@ export function packageFormDefaults(): PackageFormValues {
   return {
     id: null,
     name: '',
+    description: '',
+    badge: '',
+    display_price: '',
+    traffic_label: '',
+    cta_label: '钱包付款并自动校验',
+    features: '链上付款自动校验\n到账后自动增加下载流量\n支持手动粘贴 txHash 校验',
+    highlighted: false,
+    sort_order: '0',
     bytes_amount: '',
     chain_id: 8453,
     asset_type: 'native',
@@ -46,6 +70,14 @@ export function normalizePackagePayload(pkg: ExistingPackage): PackageFormValues
   return {
     id: pkg.id,
     name: pkg.name,
+    description: pkg.description ?? '',
+    badge: pkg.badge ?? '',
+    display_price: pkg.display_price ?? '',
+    traffic_label: pkg.traffic_label ?? '',
+    cta_label: pkg.cta_label ?? '钱包付款并自动校验',
+    features: (pkg.features ?? []).join('\n'),
+    highlighted: Boolean(pkg.highlighted),
+    sort_order: pkg.sort_order == null ? '0' : String(pkg.sort_order),
     bytes_amount: String(pkg.bytes_amount),
     chain_id: pkg.chain_id,
     asset_type: pkg.asset_type,

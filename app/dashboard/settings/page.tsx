@@ -3,10 +3,12 @@ import { getCurrentStoreUser } from '@/lib/auth'
 import { AccountAvatarForm } from '@/components/account-avatar-form'
 import { AccountIdentityPanel } from '@/components/account-identity-panel'
 import { getAccountTypeLabel, getEnterpriseStatusLabel, getTeamPlanLabel } from '@/lib/account'
+import { getIdentityPlanSettings } from '@/lib/identity-plan-settings'
 
 export default async function DashboardSettingsPage() {
   const user = await getCurrentStoreUser()
   if (!user) redirect('/login')
+  const identityPlanSettings = await getIdentityPlanSettings()
 
   return (
     <div className="space-y-6">
@@ -55,7 +57,7 @@ export default async function DashboardSettingsPage() {
           <h2 className="text-lg font-semibold text-slate-900">身份与发布权限</h2>
           <p className="mt-1 text-sm text-slate-500">个人用户不能发布应用，可升级为独立开发者；团队和企业身份需要满足套餐或认证要求。</p>
         </div>
-        <AccountIdentityPanel user={user} />
+        <AccountIdentityPanel user={user} settings={identityPlanSettings} />
       </section>
     </div>
   )

@@ -5,6 +5,14 @@ import { createAdminClient } from '@/lib/supabase/admin'
 
 const Schema = z.object({
   name: z.string().min(1),
+  description: z.string().trim().max(1000).default(''),
+  badge: z.string().trim().max(40).default(''),
+  display_price: z.string().trim().max(60).default(''),
+  traffic_label: z.string().trim().max(60).default(''),
+  cta_label: z.string().trim().min(1).max(60).default('钱包付款并自动校验'),
+  features: z.array(z.string().trim().min(1).max(140)).max(16).default([]),
+  highlighted: z.boolean().default(false),
+  sort_order: z.number().int().min(0).max(10000).default(0),
   bytes_amount: z.number().int().positive(),
   chain_id: z.number().int().positive(),
   asset_type: z.enum(['native', 'erc20']),
@@ -30,7 +38,7 @@ export async function POST(request: Request) {
   const supabase = createAdminClient()
   const { data, error } = await supabase
     .from('traffic_packages')
-    .insert(body)
+    .insert({ ...body, updated_at: new Date().toISOString() })
     .select('id')
     .single()
   if (error) return new NextResponse(error.message, { status: 400 })
@@ -46,7 +54,7 @@ export async function PUT(request: Request) {
   const supabase = createAdminClient()
   const { data, error } = await supabase
     .from('traffic_packages')
-    .update(body)
+    .update({ ...body, updated_at: new Date().toISOString() })
     .eq('id', id)
     .select('id')
     .single()

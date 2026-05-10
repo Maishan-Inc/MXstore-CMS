@@ -1,6 +1,7 @@
 import 'server-only'
 import { Client } from 'pg'
 import { defaultFooterSettings } from '@/lib/footer-settings'
+import { defaultIdentityPlanSettings } from '@/lib/identity-plans'
 
 type InstallRecordsInput = {
   authUserId: string
@@ -74,6 +75,7 @@ export async function writeInstallRecords(input: InstallRecordsInput, databaseUr
         { key: 'site_name', value: input.siteName, groupName: 'site' },
         { key: 'site_domain', value: input.siteDomain, groupName: 'site' },
         { key: 'footer_config', value: JSON.stringify(defaultFooterSettings), groupName: 'site' },
+        { key: 'identity_plan_config', value: JSON.stringify(defaultIdentityPlanSettings), groupName: 'account' },
         { key: 'installed_at', value: input.installedAt, groupName: 'system' }
       ]
 
