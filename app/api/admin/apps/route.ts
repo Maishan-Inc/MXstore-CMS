@@ -7,27 +7,27 @@ import { canPublishApps, getDeveloperProfile } from '@/lib/account'
 
 const LinkSchema = z.object({
   id: z.string().uuid().nullable().optional(),
-  name: z.string().min(1),
-  input_url: z.string().url(),
+  name: z.string().trim().min(1),
+  input_url: z.string().trim().url(),
   file_size_bytes: z.number().int().nonnegative().nullable().optional(),
   charge_traffic: z.boolean().default(true),
   sort_order: z.number().int().default(0)
 })
 
 const AppSchema = z.object({
-  name: z.string().min(1),
-  slug: z.string().min(1).regex(/^[a-z0-9-]+$/),
-  description: z.string().optional().nullable(),
-  version: z.string().optional().nullable(),
-  platform: z.string().optional().nullable(),
-  logo_url: z.string().url().optional().or(z.literal('')).nullable(),
-  developer_name: z.string().optional().nullable(),
-  developer_avatar_url: z.string().url().optional().or(z.literal('')).nullable(),
+  name: z.string().trim().min(1),
+  slug: z.string().trim().min(1).regex(/^[a-z0-9-]+$/),
+  description: z.string().trim().optional().nullable(),
+  version: z.string().trim().optional().nullable(),
+  platform: z.string().trim().optional().nullable(),
+  logo_url: z.string().trim().url().optional().or(z.literal('')).nullable(),
+  developer_name: z.string().trim().optional().nullable(),
+  developer_avatar_url: z.string().trim().url().optional().or(z.literal('')).nullable(),
   category_id: z.string().uuid().optional().or(z.literal('')).nullable(),
   download_permission: z.enum(['public', 'login', 'purchase']).default('login'),
   is_paid: z.boolean().default(false),
   price_cents: z.number().int().min(0).default(0),
-  currency: z.string().min(3).max(8).default('USD'),
+  currency: z.string().trim().min(3).max(8).default('USD'),
   published: z.boolean().default(false),
   links: z.array(LinkSchema).min(1)
 })
@@ -55,6 +55,8 @@ async function writeLinks(appId: string, links: z.infer<typeof LinkSchema>[]) {
   const supabase = createAdminClient()
   const builtLinks = await buildLinks(appId, links)
   const idsToKeep = builtLinks.flatMap((link) => (link.id ? [link.id] : []))
+  const linksToUpdate = builtLinks.filter((link) => link.id)
+  const linksToInsert = builtLinks.filter((link) => !link.id).map(({ id, ...link }) => link)
 
   if (idsToKeep.length) {
     const { data: existingLinks, error: existingError } = await supabase
@@ -73,8 +75,15 @@ async function writeLinks(appId: string, links: z.infer<typeof LinkSchema>[]) {
     if (deleteError) throw deleteError
   }
 
-  const { error: upsertError } = await supabase.from('app_links').upsert(builtLinks)
-  if (upsertError) throw upsertError
+  if (linksToUpdate.length) {
+    const { error: upsertError } = await supabase.from('app_links').upsert(linksToUpdate, { onConflict: 'id' })
+    if (upsertError) throw upsertError
+  }
+
+  if (linksToInsert.length) {
+    const { error: insertError } = await supabase.from('app_links').insert(linksToInsert)
+    if (insertError) throw insertError
+  }
 }
 
 export async function GET() {
@@ -94,7 +103,10 @@ export async function POST(request: Request) {
   if (user.role !== 'admin' && !canPublishApps(user)) {
     return new NextResponse('当前身份没有应用发布权限', { status: 403 })
   }
-  const body = AppSchema.parse(await request.json())
+  const parsed = AppSchema.safeParse(await request.json())
+  if (!parsed.success) return new NextResponse(parsed.error.issues[0]?.message ?? '应用数据不完整', { status: 400 })
+
+  const body = parsed.data
   const supabase = createAdminClient()
   const userProfile = user.role === 'admin' ? null : getDeveloperProfile(user)
   const developerName = user.role === 'admin' ? body.developer_name || body.name : userProfile?.name ?? body.name
@@ -127,6 +139,7 @@ export async function POST(request: Request) {
   try {
     await writeLinks(app.id, body.links)
   } catch (error) {
+    await supabase.from('apps').delete().eq('id', app.id)
     return new NextResponse(error instanceof Error ? error.message : '保存下载链接失败', { status: 400 })
   }
 
@@ -141,7 +154,10 @@ export async function PUT(request: Request) {
   const appId = new URL(request.url).searchParams.get('id')
   if (!appId) return new NextResponse('缺少应用 id', { status: 400 })
 
-  const body = AppSchema.parse(await request.json())
+  const parsed = AppSchema.safeParse(await request.json())
+  if (!parsed.success) return new NextResponse(parsed.error.issues[0]?.message ?? '应用数据不完整', { status: 400 })
+
+  const body = parsed.data
   const supabase = createAdminClient()
   const { data: existingApp, error: existingError } = await supabase
     .from('apps')

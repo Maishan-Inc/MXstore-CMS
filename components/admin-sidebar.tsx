@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import {
   BarChart3,
@@ -6,7 +7,7 @@ import {
   CreditCard,
   Globe2,
   Grid2X2,
-  Image,
+  Image as ImageIcon,
   Link2,
   Settings,
   Users,
@@ -18,7 +19,7 @@ const icons: Record<string, LucideIcon> = {
   'layout-dashboard': Grid2X2,
   package: Box,
   box: Box,
-  image: Image,
+  image: ImageIcon,
   link: Link2,
   globe: Globe2,
   clock: Clock3,
@@ -38,9 +39,9 @@ export function AdminSidebar({ pathname }: { pathname: string }) {
   return (
     <aside className="shrink-0 border-slate-200 bg-white lg:sticky lg:top-0 lg:h-screen lg:w-[284px] lg:self-start lg:border-r">
       <div className="flex h-full flex-col overflow-y-auto px-5 py-8">
-        <Link href="/admin" className="mb-10 flex items-center gap-2 text-slate-950">
-          <span className="text-2xl font-semibold tracking-tight">MXStore</span>
-          <span className="text-lg font-semibold">管理后台</span>
+        <Link href="/admin" className="mb-10 flex items-center gap-3 text-slate-950">
+          <Image src="/logo.png" alt="MXStore" width={42} height={42} className="rounded-xl" priority />
+          <span className="text-2xl font-bold tracking-tight">MXStore</span>
         </Link>
         <nav className="grid gap-2">
           {adminNavigationItems.map((item) => {

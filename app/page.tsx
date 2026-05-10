@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { signedImageSrc } from '@/lib/openlist-image'
+import { StoreAppIconLink } from '@/components/store-app-icon-link'
 
 export const dynamic = 'force-dynamic'
 
@@ -97,26 +98,6 @@ function iconForIndex(index: number) {
 
 function toneForIndex(index: number) {
   return fallbackApps[index % fallbackApps.length].tone
-}
-
-function FeaturedAppCard({ app }: { app: DisplayApp }) {
-  const Icon = app.icon
-
-  return (
-    <Link
-      href={`/app/${app.slug}`}
-      className="group flex h-[116px] min-w-0 flex-col items-center justify-center rounded-[18px] border border-slate-200 bg-white px-4 shadow-[0_10px_25px_rgb(15_23_42_/_0.04)] transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-[0_16px_32px_rgb(37_99_235_/_0.12)]"
-    >
-      <div className={`flex h-16 w-16 items-center justify-center rounded-[18px] bg-gradient-to-br ${app.tone} shadow-[0_10px_22px_rgb(37_99_235_/_0.18)]`}>
-        {app.logo_url ? (
-          <img src={signedImageSrc(app.logo_url) ?? app.logo_url} alt="" className="h-full w-full rounded-[18px] object-cover" />
-        ) : (
-          <Icon className="h-9 w-9 text-white" strokeWidth={2.4} />
-        )}
-      </div>
-      <span className="mt-3 max-w-full truncate text-center text-sm font-semibold text-slate-950">{app.name}</span>
-    </Link>
-  )
 }
 
 function HeroVisual() {
@@ -228,7 +209,7 @@ export default async function HomePage() {
   return (
     <main className="min-h-screen bg-white text-slate-950">
       <div className="grid min-h-screen grid-cols-1 md:grid-cols-[260px_minmax(0,1fr)]">
-        <aside className="border-b border-slate-200 bg-white px-5 py-6 md:border-b-0 md:border-r">
+        <aside className="flex flex-col border-b border-slate-200 bg-white px-5 py-6 md:sticky md:top-0 md:h-screen md:border-b-0 md:border-r">
           <div className="flex items-center justify-between md:block">
             <Link href="/" className="flex items-center gap-3">
               <Image src="/logo.png" alt="MXStore" width={42} height={42} className="rounded-xl" priority />
@@ -243,7 +224,7 @@ export default async function HomePage() {
             </Link>
           </div>
 
-          <nav className="mt-8 flex gap-2 overflow-x-auto pb-2 md:mt-12 md:block md:space-y-2 md:overflow-visible md:pb-0">
+          <nav className="mt-8 flex gap-2 overflow-x-auto pb-2 md:mt-12 md:block md:flex-1 md:space-y-2 md:overflow-visible md:pb-0">
             <p className="hidden px-3 pb-3 text-base font-semibold text-slate-500 md:block">分类</p>
             {sidebarCategories.map((item) => {
               const Icon = item.icon
@@ -267,7 +248,7 @@ export default async function HomePage() {
 
           <Link
             href="/login"
-            className="mt-12 hidden h-14 items-center justify-center gap-2 rounded-xl border border-blue-100 bg-white text-base font-semibold text-blue-600 shadow-[0_8px_22px_rgb(37_99_235_/_0.05)] transition hover:border-blue-200 hover:bg-blue-50 md:flex"
+            className="mt-8 hidden h-14 items-center justify-center gap-2 rounded-xl border border-blue-100 bg-white text-base font-semibold text-blue-600 shadow-[0_8px_22px_rgb(37_99_235_/_0.05)] transition hover:border-blue-200 hover:bg-blue-50 md:flex"
           >
             <UserRound className="h-5 w-5" />
             登录
@@ -327,7 +308,7 @@ export default async function HomePage() {
           <div id="featured-apps" className="mt-9">
             <div className="mb-6 flex items-center justify-between gap-4">
               <h2 className="text-2xl font-bold text-slate-950">精选应用</h2>
-              <Link href="/dashboard/apps" className="inline-flex items-center gap-2 text-base font-semibold text-blue-600 hover:text-blue-700">
+              <Link href="/apps" className="inline-flex items-center gap-2 text-base font-semibold text-blue-600 hover:text-blue-700">
                 查看全部
                 <ChevronRight className="h-5 w-5" />
               </Link>
@@ -335,7 +316,7 @@ export default async function HomePage() {
 
             <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8">
               {featuredApps.map((app) => (
-                <FeaturedAppCard key={app.slug} app={app} />
+                <StoreAppIconLink key={app.slug} app={app} icon={app.icon} tone={app.tone} />
               ))}
             </div>
           </div>
