@@ -30,6 +30,11 @@ export default async function AdminSettingsPage() {
           <h2 className="text-lg font-semibold text-slate-900">第三方登录</h2>
           <p className="mt-2 text-sm text-slate-500">配置快捷登录、OAuth、钱包连接器和登录按钮图标。</p>
         </Link>
+
+        <Link href="/admin/settings/footer" className="card hover:border-blue-200">
+          <h2 className="text-lg font-semibold text-slate-900">底部栏设置</h2>
+          <p className="mt-2 text-sm text-slate-500">配置前台底部栏版权、链接和社交媒体地址，可控制显示和隐藏。</p>
+        </Link>
       </div>
 
       <DatabaseUpdateButton />

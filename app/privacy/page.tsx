@@ -86,7 +86,6 @@ export default function PrivacyPage() {
       subtitle="本政策说明 MXStore 如何收集、使用、保存和保护与你的账户、钱包、下载、订单和后台操作相关的信息。"
       updatedAt="2026-05-10"
       sections={sections}
-      alternate={{ href: '/terms', label: '查看用户协议' }}
     />
   )
 }

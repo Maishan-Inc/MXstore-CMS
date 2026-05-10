@@ -82,7 +82,6 @@ export default function TermsPage() {
       subtitle="请在使用 MXStore 的账户、钱包登录、应用下载、流量套餐、链上支付和后台管理功能前阅读本协议。"
       updatedAt="2026-05-10"
       sections={sections}
-      alternate={{ href: '/privacy', label: '查看隐私政策' }}
     />
   )
 }

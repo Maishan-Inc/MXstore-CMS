@@ -315,6 +315,10 @@ export default async function HomePage() {
               ))}
             </div>
           </div>
+
+          <footer className="py-10 text-center text-sm font-semibold text-[#454745]">
+            Copyright © 2026 Maishan Inc. All rights reserved MXStore
+          </footer>
         </section>
       </div>
     </main>

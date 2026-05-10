@@ -37,6 +37,14 @@ const migrations: Migration[] = [
   {
     filename: '0006_account_identity_publish_traffic.sql',
     readSql: () => readFile(new URL('../../supabase/migrations/0006_account_identity_publish_traffic.sql', import.meta.url), 'utf8')
+  },
+  {
+    filename: '0007_app_detail_content.sql',
+    readSql: () => readFile(new URL('../../supabase/migrations/0007_app_detail_content.sql', import.meta.url), 'utf8')
+  },
+  {
+    filename: '0008_footer_settings.sql',
+    readSql: () => readFile(new URL('../../supabase/migrations/0008_footer_settings.sql', import.meta.url), 'utf8')
   }
 ]
 

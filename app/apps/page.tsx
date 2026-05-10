@@ -1,9 +1,8 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { Box, Code2, Database, Search, ShieldCheck, Sparkle, UserRound, Wallet, Zap } from 'lucide-react'
+import { Box, Code2, Database, Search, ShieldCheck, Sparkle, Wallet, Zap } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { StoreAppIconLink } from '@/components/store-app-icon-link'
-import { MxLogoMark } from '@/components/mx-logo-mark'
 
 export const dynamic = 'force-dynamic'
 
@@ -77,21 +76,8 @@ export default async function AppsPage() {
   })) ?? []
 
   return (
-    <main className="min-h-screen bg-[#f7f8f2] text-[#0e0f0c]">
-      <header className="border-b border-[#0e0f0c]/10 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-5">
-          <Link href="/" className="flex items-center gap-3">
-            <MxLogoMark className="h-[50px] w-[50px]" />
-            <span className="text-2xl font-black text-[#0e0f0c]">MXStore</span>
-          </Link>
-          <Link href="/login" className="wise-button inline-flex h-10 items-center gap-2 px-4 text-sm font-semibold">
-            <UserRound className="h-4 w-4" />
-            登录
-          </Link>
-        </div>
-      </header>
-
-      <section className="mx-auto max-w-7xl px-5 py-9">
+    <div className="text-[#0e0f0c]">
+      <section>
         <div className="mb-7 flex items-end justify-between gap-4">
           <div>
             <h1 className="wise-display text-[64px] text-[#0e0f0c]">全部应用</h1>
@@ -110,6 +96,6 @@ export default async function AppsPage() {
           <p className="rounded-[30px] border border-[#0e0f0c]/10 bg-white px-5 py-8 text-sm font-semibold text-[#868685] wise-ring">暂无已发布应用。</p>
         )}
       </section>
-    </main>
+    </div>
   )
 }
