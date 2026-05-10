@@ -69,7 +69,7 @@ export function SiteTopNav({ user }: SiteTopNavProps) {
             aria-label="进入用户后台"
             className="flex min-w-0 items-center gap-3 rounded-full bg-white/10 py-1 pl-4 pr-1 text-white transition hover:scale-105 hover:bg-white/15"
           >
-            <span className="hidden max-w-[180px] truncate text-sm font-black leading-none sm:block">{dashboardLabel}</span>
+            <span className="hidden max-w-[180px] truncate text-sm font-black leading-none text-[#ffffff] sm:block">{dashboardLabel}</span>
             <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#9fe870] p-1">
               <img src={user.avatar_url} alt={dashboardLabel} className="h-full w-full rounded-full object-cover" />
             </span>
@@ -77,9 +77,9 @@ export function SiteTopNav({ user }: SiteTopNavProps) {
         ) : user ? (
           <Link
             href="/dashboard"
-            className="inline-flex h-11 max-w-[220px] items-center justify-center truncate rounded-full bg-[#9fe870] px-7 text-base font-black text-[#163300] transition hover:scale-105 hover:bg-[#cdffad]"
+            className="inline-flex h-11 max-w-[220px] items-center justify-center truncate rounded-full bg-[#103a00] px-7 text-base font-black text-[#ffffff] transition hover:scale-105 hover:bg-[#163300]"
           >
-            {dashboardLabel}
+            <span className="truncate text-[#ffffff]">{dashboardLabel}</span>
           </Link>
         ) : (
           <Link

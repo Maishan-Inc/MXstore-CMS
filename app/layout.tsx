@@ -37,6 +37,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const isAdminPage = pathname === '/admin' || pathname.startsWith('/admin/')
   const isDashboardPage = pathname === '/dashboard' || pathname.startsWith('/dashboard/')
   const isLegalPage = pathname === '/terms' || pathname === '/privacy'
+  const isAppDetailPage = pathname.startsWith('/app/')
 
   // Install page gets its own full-screen layout without nav
   if (isInstallPage) {
@@ -111,9 +112,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="zh-CN">
       <body>
         <WalletProvider>
-          <SiteTopNav user={user ? { display_name: user.display_name, email: user.email, avatar_url: user.avatar_url } : null} />
-          <main className="mx-auto min-h-screen max-w-7xl px-4 py-8 lg:px-6">{children}</main>
-          <SiteFooter />
+          <div className={isAppDetailPage ? 'min-h-screen bg-[#eef1ed]' : undefined}>
+            <SiteTopNav user={user ? { display_name: user.display_name, email: user.email, avatar_url: user.avatar_url } : null} />
+            <main className="mx-auto min-h-screen max-w-7xl px-4 py-8 lg:px-6">{children}</main>
+            <SiteFooter variant={isAppDetailPage ? 'legal' : 'default'} />
+          </div>
         </WalletProvider>
         <ActionFeedback />
       </body>

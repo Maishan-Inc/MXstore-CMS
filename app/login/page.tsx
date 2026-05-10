@@ -7,7 +7,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-[#f7f8f2] px-6 py-8">
       <div className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-[1200px] items-center gap-12 lg:grid-cols-[560px_500px] xl:gap-20">
-        <section className="hidden h-[620px] -translate-x-6 flex-col justify-start lg:flex">
+        <section className="hidden h-[650px] origin-left -translate-x-6 -translate-y-4 scale-[1.03] flex-col justify-start lg:flex">
           <div className="flex items-center gap-7">
             <MxLogoMark className="h-[88px] w-[88px]" />
             <p className="text-[56px] font-semibold leading-none tracking-normal text-[#0e0f0c]">MXStore</p>
