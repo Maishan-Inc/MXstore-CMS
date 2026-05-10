@@ -19,7 +19,7 @@ import { useState } from 'react'
 
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'replace-me'
 const appUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000')
-const appIcon = `${appUrl.replace(/\/$/, '')}/favicon.svg`
+const appIcon = `${appUrl.replace(/\/$/, '')}/wallet-app-icon.svg`
 
 const config = getDefaultConfig({
   appName: 'MXStore',

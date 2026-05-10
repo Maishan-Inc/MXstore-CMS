@@ -5,7 +5,7 @@ import type { Connector } from 'wagmi'
 import { SiweMessage } from 'siwe'
 import { useRouter } from 'next/navigation'
 import { FormEvent, useEffect, useMemo, useState } from 'react'
-import { CheckCircle2 } from 'lucide-react'
+import { Radio } from 'lucide-react'
 import { useAccount, useChainId, useConnect, useDisconnect, useSignMessage } from 'wagmi'
 import { oauthLoginOptions, type WalletLoginOption } from '@/lib/login-options'
 import { MxLogoMark } from '@/components/mx-logo-mark'
@@ -311,8 +311,8 @@ export function LoginPanel() {
     })
     if (!verifyRes.ok) throw new Error(await verifyRes.text())
     const data = await verifyRes.json() as { role?: 'admin' | 'user'; next?: string }
-    setAuthOverlay((current) => current ? { ...current, status: 'success', message: '授权成功' } : current)
-    await sleep(700)
+    setAuthOverlay((current) => current ? { ...current, status: 'success', message: '签名已确认，正在完成登录' } : current)
+    await sleep(3000)
     router.push(data.next ?? (data.role === 'admin' ? '/admin' : '/dashboard'))
     router.refresh()
   }
@@ -519,30 +519,63 @@ export function LoginPanel() {
 
 function AuthOverlay({ state }: { state: AuthOverlayState }) {
   const success = state.status === 'success'
+  const [countdown, setCountdown] = useState(3)
+
+  useEffect(() => {
+    if (!success) {
+      setCountdown(3)
+      return
+    }
+
+    setCountdown(3)
+    const timer = window.setInterval(() => {
+      setCountdown((current) => Math.max(0, current - 1))
+    }, 1000)
+
+    return () => window.clearInterval(timer)
+  }, [success])
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/65 px-4 backdrop-blur-sm">
-      <div className="rounded-3xl border border-[#0e0f0c]/10 bg-white px-9 py-8 text-center wise-ring">
-        <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center">
-          <MxLogoMark className="h-16 w-16" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/70 px-4 backdrop-blur-md">
+      <div className="flex aspect-square w-[min(430px,calc(100vw-2rem))] flex-col justify-between rounded-[34px] border border-[#0e0f0c]/10 bg-white p-8 text-center wise-ring">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-[#868685]">MXStore Wallet Login</p>
+          <h2 className="mt-3 text-2xl font-black text-[#0e0f0c]">{success ? `${state.label} 登录成功` : `连接 ${state.label}`}</h2>
+          <p className="mt-2 text-sm font-semibold leading-6 text-[#454745]">{state.message}</p>
         </div>
-        <div className="mx-auto mb-5 flex h-24 w-24 items-center justify-center">
-          <div className="relative h-20 w-20 rounded-3xl">
-            <div className={success
-              ? 'absolute inset-0 rounded-3xl bg-emerald-100'
-              : 'absolute inset-0 animate-spin rounded-3xl bg-[conic-gradient(from_0deg,#9fe870,#e2f6d5,#0e0f0c,#9fe870)]'}
-            />
-            <div className="absolute inset-[3px] flex items-center justify-center rounded-[21px] bg-white">
-              <div className={success ? 'absolute opacity-0 transition-all duration-500 scale-75' : 'absolute opacity-100 transition-all duration-500 scale-100'}>
-                <ProviderIcon id={state.visualId} src={state.iconSrc} />
-              </div>
-              <CheckCircle2 className={success ? 'h-12 w-12 scale-100 text-emerald-600 opacity-100 transition-all duration-500' : 'h-12 w-12 scale-75 text-emerald-600 opacity-0 transition-all duration-500'} strokeWidth={2.4} />
-            </div>
+
+        <div className="relative mx-auto h-36 w-full max-w-[280px]">
+          <div className="absolute left-1/2 top-1/2 h-px w-40 -translate-x-1/2 bg-[#0e0f0c]/10" />
+          <div className={success
+            ? 'absolute left-1/2 top-1/2 z-10 flex h-20 w-20 -translate-x-1/2 -translate-y-1/2 scale-100 items-center justify-center rounded-[24px] bg-white opacity-100 wise-ring transition-all delay-500 duration-300'
+            : 'absolute left-1/2 top-1/2 z-10 flex h-20 w-20 -translate-x-[120px] -translate-y-1/2 items-center justify-center rounded-[24px] bg-white opacity-100 wise-ring transition-all duration-700'}
+          >
+            <ProviderIcon id={state.visualId} src={state.iconSrc} />
+          </div>
+
+          <div className={success
+            ? 'absolute left-1/2 top-1/2 flex h-20 w-20 -translate-x-1/2 -translate-y-1/2 scale-90 items-center justify-center rounded-[24px] bg-white opacity-0 wise-ring transition-all duration-700'
+            : 'absolute left-1/2 top-1/2 flex h-20 w-20 translate-x-[40px] -translate-y-1/2 items-center justify-center rounded-[24px] bg-white opacity-100 wise-ring transition-all duration-700'}
+          >
+            <MxLogoMark className="h-12 w-12" />
+          </div>
+
+          <div className={success
+            ? 'absolute left-1/2 top-1/2 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 scale-50 items-center justify-center rounded-full bg-[#e2f6d5] text-[#163300] opacity-0 transition-all duration-300'
+            : 'absolute left-1/2 top-1/2 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-[#e2f6d5] text-[#163300] opacity-100 transition-all duration-300'}
+          >
+            <Radio className="h-5 w-5" />
           </div>
         </div>
-        <p className="text-sm font-semibold text-[#868685]">MXStore 钱包签名登录</p>
-        <p className="mt-1 text-base font-semibold text-slate-950">{state.label}</p>
-        <p className="mt-2 text-sm text-slate-500">{state.message}</p>
+
+        <div className="rounded-[24px] bg-[#f7f8f2] px-5 py-4">
+          <p className="text-sm font-black text-[#0e0f0c]">
+            {success ? `${Math.max(0, countdown)} 秒后进入平台` : '请在钱包插件中确认签名'}
+          </p>
+          <p className="mt-2 text-xs font-semibold leading-5 text-[#868685]">
+            {success ? `已通过 ${state.label} 完成身份验证。` : '签名只用于确认钱包归属，不会发起交易或产生链上费用。'}
+          </p>
+        </div>
       </div>
     </div>
   )

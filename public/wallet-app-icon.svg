@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
+  <defs>
+    <linearGradient id="mx-wallet-icon-green" x1="23" x2="67" y1="18" y2="74" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#9fe870"/>
+      <stop offset="1" stop-color="#163300"/>
+    </linearGradient>
+  </defs>
+  <path d="M22 18h11.2c2.5 0 4.8 1.3 6.1 3.4L53 43.2l14.1-22.1c1.3-1.9 3.4-3.1 5.7-3.1H79L59.6 48.4 77 75H64.9c-2.4 0-4.6-1.2-5.9-3.2L22 18Z" fill="url(#mx-wallet-icon-green)"/>
+  <path d="M22 18h11.2c2.5 0 4.8 1.3 6.1 3.4l10 15.8L36.1 56.5c-1.3 1.9-3.4 3-5.7 3H22V18Z" fill="#163300"/>
+  <path d="M50.3 41.2 66.1 18H79L59.6 48.4l-9.3-7.2Z" fill="#9fe870"/>
+  <path d="M39.9 50.8 50.2 35.6l9.1 13.4-10.6 15.5-8.8-13.7Z" fill="#e2f6d5"/>
+</svg>

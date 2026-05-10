@@ -4,6 +4,7 @@ import { requireAdmin, requireUser } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { findTokenDomainByUrl } from '@/lib/openlist'
 import { canPublishApps, getDeveloperProfile } from '@/lib/account'
+import { isMissingAppDetailColumn, stripAppDetailPayload } from '@/lib/admin/app-detail-fields'
 
 const LinkSchema = z.object({
   id: z.string().uuid().nullable().optional(),
@@ -106,6 +107,40 @@ async function writeLinks(appId: string, links: z.infer<typeof LinkSchema>[]) {
   }
 }
 
+function buildAppPayload(body: z.infer<typeof AppSchema>, user: Awaited<ReturnType<typeof requireUser>>) {
+  const userProfile = user.role === 'admin' ? null : getDeveloperProfile(user)
+  const developerName = user.role === 'admin' ? body.developer_name || body.name : userProfile?.name ?? body.name
+  const developerAvatarUrl = user.role === 'admin' ? body.developer_avatar_url || null : userProfile?.avatarUrl ?? null
+
+  return {
+    name: body.name,
+    slug: body.slug,
+    description: body.description,
+    version: body.version,
+    platform: body.platform,
+    logo_url: body.logo_url || null,
+    official_url: body.official_url || null,
+    screenshot_urls: body.screenshot_urls,
+    feature_highlights: body.feature_highlights,
+    changelog: body.changelog || null,
+    release_date: body.release_date || null,
+    language: body.language || null,
+    license_name: body.license_name || null,
+    system_requirements: body.system_requirements || null,
+    rating_score: body.rating_score,
+    rating_count: body.rating_count,
+    download_count: body.download_count,
+    category_id: body.category_id || null,
+    download_permission: body.download_permission,
+    is_paid: body.download_permission === 'purchase' || body.is_paid,
+    price_cents: body.price_cents,
+    currency: body.currency,
+    developer_name: developerName,
+    developer_avatar_url: developerAvatarUrl,
+    published: body.published
+  }
+}
+
 export async function GET() {
   await requireAdmin()
   const supabase = createAdminClient()
@@ -128,44 +163,26 @@ export async function POST(request: Request) {
 
   const body = parsed.data
   const supabase = createAdminClient()
-  const userProfile = user.role === 'admin' ? null : getDeveloperProfile(user)
-  const developerName = user.role === 'admin' ? body.developer_name || body.name : userProfile?.name ?? body.name
-  const developerAvatarUrl = user.role === 'admin' ? body.developer_avatar_url || null : userProfile?.avatarUrl ?? null
+  const payload = buildAppPayload(body, user)
 
-  const { data: app, error: appError } = await supabase
+  let { data: app, error: appError } = await supabase
     .from('apps')
-    .insert({
-      name: body.name,
-      slug: body.slug,
-      description: body.description,
-      version: body.version,
-      platform: body.platform,
-      logo_url: body.logo_url || null,
-      official_url: body.official_url || null,
-      screenshot_urls: body.screenshot_urls,
-      feature_highlights: body.feature_highlights,
-      changelog: body.changelog || null,
-      release_date: body.release_date || null,
-      language: body.language || null,
-      license_name: body.license_name || null,
-      system_requirements: body.system_requirements || null,
-      rating_score: body.rating_score,
-      rating_count: body.rating_count,
-      download_count: body.download_count,
-      category_id: body.category_id || null,
-      download_permission: body.download_permission,
-      is_paid: body.download_permission === 'purchase' || body.is_paid,
-      price_cents: body.price_cents,
-      currency: body.currency,
-      developer_name: developerName,
-      developer_avatar_url: developerAvatarUrl,
-      published: body.published,
-      created_by: user.id
-    })
+    .insert({ ...payload, created_by: user.id })
     .select('id,slug')
     .single()
 
+  if (isMissingAppDetailColumn(appError)) {
+    const fallback = await supabase
+      .from('apps')
+      .insert({ ...stripAppDetailPayload(payload), created_by: user.id })
+      .select('id,slug')
+      .single()
+    app = fallback.data
+    appError = fallback.error
+  }
+
   if (appError) return new NextResponse(appError.message, { status: 400 })
+  if (!app) return new NextResponse('应用保存失败', { status: 400 })
 
   try {
     await writeLinks(app.id, body.links)
@@ -202,45 +219,28 @@ export async function PUT(request: Request) {
     return new NextResponse('只能编辑自己创建的应用', { status: 403 })
   }
 
-  const userProfile = user.role === 'admin' ? null : getDeveloperProfile(user)
-  const developerName = user.role === 'admin' ? body.developer_name || body.name : userProfile?.name ?? body.name
-  const developerAvatarUrl = user.role === 'admin' ? body.developer_avatar_url || null : userProfile?.avatarUrl ?? null
+  const payload = buildAppPayload(body, user)
 
-  const { data: app, error: appError } = await supabase
+  let { data: app, error: appError } = await supabase
     .from('apps')
-    .update({
-      name: body.name,
-      slug: body.slug,
-      description: body.description,
-      version: body.version,
-      platform: body.platform,
-      logo_url: body.logo_url || null,
-      official_url: body.official_url || null,
-      screenshot_urls: body.screenshot_urls,
-      feature_highlights: body.feature_highlights,
-      changelog: body.changelog || null,
-      release_date: body.release_date || null,
-      language: body.language || null,
-      license_name: body.license_name || null,
-      system_requirements: body.system_requirements || null,
-      rating_score: body.rating_score,
-      rating_count: body.rating_count,
-      download_count: body.download_count,
-      category_id: body.category_id || null,
-      download_permission: body.download_permission,
-      is_paid: body.download_permission === 'purchase' || body.is_paid,
-      price_cents: body.price_cents,
-      currency: body.currency,
-      developer_name: developerName,
-      developer_avatar_url: developerAvatarUrl,
-      published: body.published,
-      updated_at: new Date().toISOString()
-    })
+    .update({ ...payload, updated_at: new Date().toISOString() })
     .eq('id', appId)
     .select('id,slug')
     .single()
 
+  if (isMissingAppDetailColumn(appError)) {
+    const fallback = await supabase
+      .from('apps')
+      .update({ ...stripAppDetailPayload(payload), updated_at: new Date().toISOString() })
+      .eq('id', appId)
+      .select('id,slug')
+      .single()
+    app = fallback.data
+    appError = fallback.error
+  }
+
   if (appError) return new NextResponse(appError.message, { status: 400 })
+  if (!app) return new NextResponse('应用保存失败', { status: 400 })
 
   try {
     await writeLinks(app.id, body.links)

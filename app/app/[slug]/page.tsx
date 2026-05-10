@@ -26,6 +26,7 @@ import { AppPurchaseButton } from '@/components/app-purchase-button'
 import { DownloadLinkDialog } from '@/components/download-link-dialog'
 import { formatBytes, formatMoney } from '@/lib/format'
 import { signedImageSrc } from '@/lib/openlist-image'
+import { isMissingAppDetailColumn, withAppDetailDefaults } from '@/lib/admin/app-detail-fields'
 
 type DownloadPermission = 'public' | 'login' | 'purchase'
 
@@ -71,11 +72,23 @@ function normalizeHighlights(values: string[] | null | undefined) {
 export default async function AppDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const supabase = createAdminClient()
-  const { data: app, error } = await supabase
+  let { data: app, error } = await supabase
     .from('apps')
     .select('id,name,slug,description,version,platform,category_id,download_permission,is_paid,price_cents,currency,logo_url,official_url,screenshot_urls,feature_highlights,changelog,release_date,language,license_name,system_requirements,rating_score,rating_count,download_count,developer_name,developer_avatar_url,published,app_categories(name,icon),app_links(id,name,file_size_bytes,charge_traffic,sort_order)')
     .eq('slug', slug)
     .maybeSingle()
+
+  if (isMissingAppDetailColumn(error)) {
+    const fallback = await supabase
+      .from('apps')
+      .select('id,name,slug,description,version,platform,category_id,download_permission,is_paid,price_cents,currency,logo_url,developer_name,developer_avatar_url,published,app_categories(name,icon),app_links(id,name,file_size_bytes,charge_traffic,sort_order)')
+      .eq('slug', slug)
+      .maybeSingle()
+    app = withAppDetailDefaults(fallback.data)
+    error = fallback.error
+  } else {
+    app = withAppDetailDefaults(app)
+  }
 
   if (error) throw error
   if (!app || !app.published) notFound()
